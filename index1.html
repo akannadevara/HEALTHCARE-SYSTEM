@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI-Based Generative Analytics Dashboard</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --primary: #4361ee;
+      --success: #06d6a0;
+      --warning: #ffd166;
+      --danger: #ef476f;
+      --dark: #2d3142;
+      --light: #f8f9fa;
+      --gray: #adb5bd;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: var(--dark);
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1500px;
+      margin: auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+    }
+
+    .section {
+      padding: 2rem;
+      border-bottom: 1px solid #eee;
+    }
+
+    .section:last-child { border-bottom: none; }
+
+    .section h2 {
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section h2::before {
+      content: "AI";
+      background: var(--success);
+      color: white;
+      font-weight: bold;
+      font-size: 0.7rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card {
+      background: var(--light);
+      border-radius: 12px;
+      padding: 1.2rem;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+      text-align: center;
+      transition: transform 0.2s;
+    }
+
+    .card:hover { transform: translateY(-5px); }
+
+    .card h3 {
+      font-size: 2rem;
+      margin: 0.5rem 0;
+      color: var(--primary);
+    }
+
+    .card p { color: var(--gray); font-size: 0.9rem; }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin: 1rem 0;
+    }
+
+    .insight-box {
+      background: #e0f7fa;
+      border-left: 5px solid var(--success);
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 0 8px 8px 0;
+      font-style: italic;
+      color: #006064;
+    }
+
+    .alert {
+      padding: 0.8rem;
+      margin: 0.5rem 0;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .alert.warning { background: #fff8e1; color: #b28900; border-left: 4px solid var(--warning); }
+    .alert.danger { background: #ffebee; color: #c62828; border-left: 4px solid var(--danger); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      padding: 0.8rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background: #f1f3f5;
+      font-weight: 600;
+      color: var(--dark);
+    }
+
+    tr:hover { background: #f9f9f9; }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .badge.high { background: #c8e6c9; color: #2e7d32; }
+    .badge.medium { background: #fff3e0; color: #ef6c00; }
+    .badge.low { background: #ffcdd2; color: #c62828; }
+
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; }
+      header h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>AI-Based Generative Analytics & Reports</h1>
+    <p>Real-time Insights | Predictive Forecasting | Auto-Generated Recommendations</p>
+  </header>
+
+  <!-- ====================== SALES & ORDER REPORTS ====================== -->
+  <div class="section">
+    <h2>Sales & Order Reports</h2>
+
+    <div class="grid">
+      <div class="card">
+        <h3 id="totalOrders">0</h3>
+        <p>Total Orders</p>
+      </div>
+      <div class="card">
+        <h3 id="completed" style="color:var(--success)">0</h3>
+        <p>Completed</p>
+      </div>
+      <div class="card">
+        <h3 id="pending" style="color:var(--warning)">0</h3>
+        <p>Pending</p>
+      </div>
+      <div class="card">
+        <h3 id="cancelled" style="color:var(--danger)">0</h3>
+        <p>Cancelled</p>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div><div class="chart-container"><canvas id="revenueBrand"></canvas></div></div>
+      <div><div class="chart-container"><canvas id="revenueRegion"></canvas></div></div>
+    </div>
+
+    <div class="grid">
+      <div><div class="chart-container"><canvas id="revenueFps"></canvas></div></div>
+      <div><div class="chart-container"><canvas id="revenueCategory"></canvas></div></div>
+    </div>
+
+    <div class="grid">
+      <div><div class="chart-container"><canvas id="popularProducts"></canvas></div></div>
+      <div><div class="chart-container"><canvas id="seasonalTrend"></canvas></div></div>
+    </div>
+
+    <div class="insight-box" id="salesInsight">
+      <strong>AI Insight:</strong> Loading...
+    </div>
+  </div>
+
+  <!-- ====================== INVENTORY ANALYTICS ====================== -->
+  <div class="section">
+    <h2>Inventory Analytics Reports</h2>
+
+    <div class="grid">
+      <div><div class="chart-container"><canvas id="stockDistribution"></canvas></div></div>
+      <div>
+        <h3 style="margin-top:0; font-size:1.2rem;">Ageing & Expiry Alerts</h3>
+        <div id="ageingAlerts"></div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:1.5rem;">Intelligent Order Placement Suggestions</h3>
+    <table id="orderSuggestions">
+      <thead>
+        <tr>
+          <th>Commodity</th>
+          <th>Sales Volume (30d)</th>
+          <th>Density</th>
+          <th>Suggested Qty</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="insight-box" id="inventoryInsight">
+      <strong>AI Recommendation:</strong> Loading...
+    </div>
+  </div>
+
+  <!-- ====================== FINANCE & RECONCILIATION ====================== -->
+  <div class="section">
+    <h2>Finance & Reconciliation</h2>
+
+    <div class="grid">
+      <div class="card">
+        <h3 id="dailyRevenue">$0</h3>
+        <p>Daily Revenue (Nov 6, 2025)</p>
+      </div>
+      <div class="card">
+        <h3 id="monthlyRevenue">$0</h3>
+        <p>Monthly Revenue (Nov YTD)</p>
+      </div>
+    </div>
+
+    <div class="chart-container"><canvas id="revenueSummary"></canvas></div>
+
+    <div class="insight-box" id="financeInsight">
+      <strong>AI Financial Summary:</strong> Loading...
+    </div>
+  </div>
+</div>
+
+<script>
+  // ====================== MOCK DATA (Realistic 2025 Retail) ======================
+  const data = {
+    orders: { total: 1423, completed: 1158, pending: 213, cancelled: 52 },
+    revenue: {
+      brand: { Nike: 148200, Adidas: 112500, Puma: 78500, Reebok: 45600 },
+      region: { North: 102300, South: 134800, East: 89200, West: 67500 },
+      fps: { "Mall-A": 94500, "Outlet-B": 78200, "Store-C": 62300 },
+      category: { Footwear: 156700, Apparel: 123400, Accessories: 67400 }
+    },
+    popular: { "Running Shoes": 378, "T-Shirt": 312, "Jacket": 245, "Shorts": 189, "Cap": 156 },
+    seasonal: [45200, 39800, 62300, 78900, 94500, 112300, 102400, 109800, 87600, 123500, 145600, 167800],
+    stock: { warehouse: 5234, fps: 1987 },
+    ageing: [
+      { sku: "ABC123", days: 112, type: "warning" },
+      { sku: "XYZ987", days: 167, type: "danger" },
+      { sku: "LMN456", days: 56, type: null }
+    ],
+    suggestions: [
+      { name: "Running Shoes", vol: 378, density: "High", qty: 450 },
+      { name: "T-Shirt", vol: 312, density: "Medium", qty: 350 },
+      { name: "Jacket", vol: 245, density: "Low", qty: 200 },
+      { name: "Shorts", vol: 189, density: "Medium", qty: 250 }
+    ],
+    finance: { daily: 21450, monthly: 567890, last5: [15600, 17800, 19200, 20500, 21450] }
+  };
+
+  // ====================== UTILS ======================
+  const $ = (id) => document.getElementById(id);
+  const format = (n) => '$' + n.toLocaleString();
+  const randColor = () => `hsl(${Math.random()*360}, 70%, 60%)`;
+
+  // ====================== SALES SECTION ======================
+  $('totalOrders').textContent = data.orders.total;
+  $('completed').textContent = data.orders.completed;
+  $('pending').textContent = data.orders.pending;
+  $('cancelled').textContent = data.orders.cancelled;
+
+  // Charts
+  new Chart($('revenueBrand'), { type: 'doughnut', data: { labels: Object.keys(data.revenue.brand), datasets: [{ data: Object.values(data.revenue.brand), backgroundColor: Object.keys(data.revenue.brand).map(randColor) }] }, options: { responsive: true, plugins: { title: { display: true, text: 'Revenue by Brand' } } } });
+  new Chart($('revenueRegion'), { type: 'bar', data: { labels: Object.keys(data.revenue.region), datasets: [{ label: 'Revenue', data: Object.values(data.revenue.region), backgroundColor: 'rgba(67, 97, 238, 0.7)' }] }, options: { responsive: true, plugins: { title: { display: true, text: 'Revenue by Region' } } } });
+  new Chart($('revenueFps'), { type: 'bar', data: { labels: Object.keys(data.revenue.fps), datasets: [{ label: 'Revenue', data: Object.values(data.revenue.fps), backgroundColor: 'rgba(6, 214, 160, 0.7)' }] }, options: { responsive: true, plugins: { title: { display: true, text: 'Revenue by FPS' } } } });
+  new Chart($('revenueCategory'), { type: 'pie', data: { labels: Object.keys(data.revenue.category), datasets: [{ data: Object.values(data.revenue.category), backgroundColor: ['#4361ee', '#06d6a0', '#ffd166'] }] }, options: { responsive: true, plugins: { title: { display: true, text: 'Revenue by Category' } } } });
+  new Chart($('popularProducts'), { type: 'polarArea', data: { labels: Object.keys(data.popular), datasets: [{ data: Object.values(data.popular), backgroundColor: Object.keys(data.popular).map(randColor) }] }, options: { responsive: true, plugins: { title: { display: true, text: 'Popular Products (Units Sold)' } } } });
+  new Chart($('seasonalTrend'), { type: 'line', data: { labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], datasets: [{ label: 'Revenue', data: data.seasonal, borderColor: '#4361ee', tension: 0.3, fill: false }] }, options: { responsive: true, plugins: { title: { display: true, text: 'Seasonal Revenue Trend 2025' } } } });
+
+  // AI Insight
+  const topBrand = Object.keys(data.revenue.brand).reduce((a,b) => data.revenue.brand[a] > data.revenue.brand[b] ? a : b);
+  const topRegion = Object.keys(data.revenue.region).reduce((a,b) => data.revenue.region[a] > data.revenue.region[b] ? a : b);
+  $('salesInsight').innerHTML = `<strong>AI Insight:</strong> ${topBrand} leads with ${format(data.revenue.brand[topBrand])}, especially strong in the <strong>${topRegion}</strong> region. Consider increasing promotional budget there by 15%.`;
+
+  // ====================== INVENTORY SECTION ======================
+  new Chart($('stockDistribution'), { type: 'doughnut', data: { labels: ['Warehouse', 'FPS'], datasets: [{ data: [data.stock.warehouse, data.stock.fps], backgroundColor: ['#06d6a0', '#ffd166'] }] }, options: { responsive: true, plugins: { title: { display: true, text: 'Warehouse vs FPS Stock' } } } });
+
+  // Ageing Alerts
+  const alertsDiv = $('ageingAlerts');
+  data.ageing.forEach(item => {
+    if (item.type) {
+      const div = document.createElement('div');
+      div.className = `alert ${item.type}`;
+      div.innerHTML = `<strong>SKU ${item.sku}</strong> – ${item.days} days old <span style="float:right">Risk: ${item.type.toUpperCase()}</span>`;
+      alertsDiv.appendChild(div);
+    }
+  });
+
+  // Order Suggestions
+  const tbody = document.querySelector('#orderSuggestions tbody');
+  data.suggestions.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${s.name}</td>
+      <td>${s.vol}</td>
+      <td><span class="badge ${s.density.toLowerCase()}">${s.density}</span></td>
+      <td><strong>${s.qty}</strong></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // AI Inventory Insight
+  const highDemand = data.suggestions.find(s => s.density === 'High');
+  $('inventoryInsight').innerHTML = `<strong>AI Recommendation:</strong> Reorder <strong>${highDemand.qty} units of ${highDemand.name}</strong> immediately. High sales density detected. Auto-generate PO to supplier in 3 days.`;
+
+  // ====================== FINANCE SECTION ======================
+  $('dailyRevenue').textContent = format(data.finance.daily);
+  $('monthlyRevenue').textContent = format(data.finance.monthly);
+
+  new Chart($('revenueSummary'), { type: 'line', data: { labels: ['Day-4','Day-3','Day-2','Day-1','Today'], datasets: [{ label: 'Daily Revenue', data: data.finance.last5, borderColor: '#06d6a0', backgroundColor: 'rgba(6,214,160,0.1)', tension: 0.3, fill: true }] }, options: { responsive: true, plugins: { title: { display: true, text: 'Last 5 Days Revenue Trend' } } } });
+
+  // AI Finance Insight
+  const growth = ((data.finance.daily - data.finance.last5[3]) / data.finance.last5[3] * 100).toFixed(1);
+  $('financeInsight').innerHTML = `<strong>AI Financial Summary:</strong> Daily revenue up <strong>${growth}%</strong> from yesterday. On track to hit <strong>${format(Math.round(data.finance.monthly / 6 * 30))}</strong> this month. No reconciliation issues detected.`;
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDS Product & Inventory Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: #f4f6f9; 
+            color: #333; 
+            opacity: 0;
+            animation: fadeInBody 0.8s ease-out forwards;
+        }
+
+        @keyframes fadeInBody {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
+        }
+
+        .hamburger {
+            position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; z-index: 1001;
+            transition: transform 0.3s ease;
+        }
+        .hamburger:hover { transform: translateY(-50%) scale(1.2); }
+
+        .sidebar {
+            position: fixed; left: 0; top: 0; width: 280px; height: 100vh; background: #2c3e50; color: white;
+            transform: translateX(-100%); transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; overflow-y: auto;
+            padding: 1rem 0; backdrop-filter: blur(10px);
+            box-shadow: 2px 0 20px rgba(0,0,0,0.15);
+        }
+        .sidebar.active { 
+            transform: translateX(0); 
+            box-shadow: 5px 0 30px rgba(0,0,0,0.25);
+        }
+
+        .overlay { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.5); z-index: 999; backdrop-filter: blur(4px);
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        .overlay.active { display: block; opacity: 1; }
+
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+
+        .tab-content { 
+            display: none; background: white; border-radius: 12px; padding: 2rem; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); opacity: 0; transform: translateY(20px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tab-content.active { 
+            display: block; opacity: 1; transform: translateY(0); 
+        }
+
+        h2, h3 { 
+            color: #2c3e50; margin-bottom: 1rem; 
+            position: relative; 
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Sidebar */
+        .sidebar-header { padding: 1rem 1.5rem; border-bottom: 1px solid #34495e; }
+        .system-title { font-size: 1.1rem; font-weight: bold; margin-bottom: 0.5rem; color: #ecf0f1; }
+        .user-greeting { font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; }
+        .user-greeting a { color: #3498db; text-decoration: none; font-weight: bold; }
+        .user-greeting a:hover { text-decoration: underline; }
+        .sidebar-menu { list-style: none; padding: 0.5rem 0; }
+        .menu-section { padding: 0.75rem 1.5rem; font-size: 0.8rem; text-transform: uppercase; color: #bdc3c7; font-weight: bold; letter-spacing: 1px; }
+        .menu-item { 
+            padding: 0.75rem 1.5rem; font-size: 0.95rem; cursor: pointer; 
+            display: flex; align-items: center; gap: 0.75rem; 
+            transition: all 0.3s ease; opacity: 0; transform: translateX(-20px);
+            animation: slideInLeft 0.5s ease-out forwards;
+        }
+        .menu-item:nth-child(1) { animation-delay: 0.1s; }
+        .menu-item:nth-child(2) { animation-delay: 0.15s; }
+        .menu-item:nth-child(3) { animation-delay: 0.2s; }
+        .menu-item:nth-child(4) { animation-delay: 0.25s; }
+        .menu-item:nth-child(5) { animation-delay: 0.3s; }
+        .menu-item:nth-child(6) { animation-delay: 0.35s; }
+        .menu-item:nth-child(7) { animation-delay: 0.4s; }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .menu-item:hover { background: #34495e; transform: translateX(5px); }
+        .menu-item.active { 
+            background: #2980b9; font-weight: bold; 
+            box-shadow: inset 4px 0 0 #1abc9c;
+        }
+        .menu-item i { width: 20px; text-align: center; }
+
+        /* Category Buttons */
+        .category-selection { text-align: center; margin: 2rem 0; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+        button.category-btn { 
+            background: #3498db; padding: 1rem 2rem; font-size: 1.1rem; border: none; 
+            border-radius: 8px; color: white; cursor: pointer; 
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+            position: relative; overflow: hidden; opacity: 0; transform: scale(0.9);
+            animation: popIn 0.5s ease-out forwards;
+        }
+        .category-btn:nth-child(1) { animation-delay: 0.2s; }
+        .category-btn:nth-child(2) { animation-delay: 0.3s; }
+        .category-btn:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        button.category-btn:hover { 
+            background: #2980b9; transform: translateY(-3px); 
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+        }
+        button.category-btn.active { 
+            background: #2980b9; box-shadow: 0 0 15px rgba(41, 128, 185, 0.5); 
+            transform: scale(1.07); font-weight: bold;
+        }
+
+        /* Product Grid */
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 1rem; }
+        .product-card { 
+            border: 1px solid #e0e0e0; border-radius: 12px; padding: 1rem; background: white; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: all 0.4s ease; 
+            position: relative; opacity: 0; transform: translateY(30px);
+            animation: cardFadeIn 0.6s ease-out forwards;
+        }
+
+        @keyframes cardFadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .product-card:hover { 
+            box-shadow: 0 12px 25px rgba(0,0,0,0.12); 
+            transform: translateY(-8px) scale(1.02); 
+            border-color: #3498db;
+        }
+
+        .product-badge { 
+            position: absolute; top: 0.5rem; left: 0.5rem; background: #e74c3c; color: white; 
+            padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: bold; 
+            z-index: 10; animation: pulseBadge 2s infinite;
+        }
+        .product-badge.bestseller { background: #ff9900; }
+
+        @keyframes pulseBadge {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .product-image { width: 100%; height: 200px; object-fit: contain; background: #f8f9fa; border-radius: 4px; margin-bottom: 0.75rem; }
+        .no-image { width: 100%; height: 200px; background: #f8f9fa; display: flex; align-items: center; justify-content: center; border-radius: 4px; color: #999; margin-bottom: 0.75rem; }
+        .product-name { font-weight: bold; margin-bottom: 0.25rem; font-size: 0.95rem; line-height: 1.3; color: #111; }
+        .product-desc { font-size: 0.8rem; color: #555; margin-bottom: 0.5rem; line-height: 1.4; }
+        .product-price { font-size: 1.2rem; color: #b12704; font-weight: bold; margin-bottom: 0.25rem; }
+        .product-rating { display: flex; align-items: center; gap: 0.25rem; margin-bottom: 0.5rem; font-size: 0.85rem; }
+        .product-rating-stars { color: #ffa41c; font-size: 0.9rem; }
+        .stock-info { font-size: 0.85rem; color: #27ae60; margin-bottom: 0.5rem; font-weight: bold; }
+        .stock-info.low { color: #e74c3c; }
+
+        /* Quantity */
+        .quantity-selector { display: flex; align-items: center; gap: 0.5rem; margin: 0.75rem 0; font-weight: bold; }
+        .quantity-btn { 
+            background: #3498db; color: white; border: none; width: 32px; height: 32px; 
+            border-radius: 50%; cursor: pointer; font-size: 1rem; 
+            transition: all 0.3s ease; 
+        }
+        .quantity-btn:hover { 
+            background: #2980b9; transform: scale(1.15); 
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+        }
+        .quantity-input { width: 60px; text-align: center; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }
+
+        /* Book Now */
+        .book-now-btn { 
+            background: #e67e22; color: white; border: none; width: 100%; padding: 0.75rem; 
+            font-size: 1rem; font-weight: bold; border-radius: 8px; cursor: pointer; 
+            transition: all 0.3s ease; position: relative; overflow: hidden;
+        }
+        .book-now-btn:hover { 
+            background: #d35400; transform: translateY(-2px); 
+            box-shadow: 0 6px 15px rgba(230, 126, 34, 0.4);
+        }
+        .book-now-btn:active { transform: translateY(0); }
+
+        /* Forms */
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+        .form-group input, .form-group select, .form-group textarea { 
+            width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; 
+            transition: all 0.3s ease; font-size: 0.95rem;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none; border-color: #3498db; 
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); 
+            transform: scale(1.02);
+        }
+
+        .btn-primary { 
+            background: #27ae60; color: white; padding: 0.75rem 1.5rem; border: none; 
+            border-radius: 8px; cursor: pointer; font-weight: bold;
+            transition: all 0.3s ease; position: relative; overflow: hidden;
+        }
+        .btn-primary:hover {
+            background: #219a52; transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(39, 174, 96, 0.4);
+        }
+
+        /* Dashboard */
+        .chart-container { 
+            height: 350px; margin: 2rem 0; 
+            animation: fadeInUp 0.8s ease-out 0.3s both;
+        }
+
+        /* ==== CHATBOT – now TOP-RIGHT ==== */
+        .chatbot-container { 
+            position: fixed; 
+            top: 20px;          /* <-- changed from bottom */
+            right: 20px; 
+            width: 350px; 
+            height: 500px; 
+            background: white; 
+            border-radius: 16px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2); 
+            display: none; 
+            flex-direction: column; 
+            z-index: 2000; 
+            transform: scale(0.7); 
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        .chatbot-container.active { 
+            display: flex; 
+            transform: scale(1); 
+            opacity: 1; 
+        }
+
+        .chat-header { 
+            background: #3498db; 
+            color: white; 
+            padding: 1rem; 
+            border-radius: 16px 16px 0 0; 
+            font-weight: bold; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .chat-body { 
+            flex: 1; 
+            padding: 1rem; 
+            overflow-y: auto; 
+            background: #f8f9fa; 
+        }
+        .chat-message { 
+            margin: 0.5rem 0; 
+            padding: 0.75rem 1rem; 
+            border-radius: 18px; 
+            max-width: 80%; 
+        }
+        .user-message { 
+            background: #3498db; 
+            color: white; 
+            align-self: flex-end; 
+            margin-left: auto; 
+        }
+        .bot-message { 
+            background: #eee; 
+            color: #333; 
+        }
+        .chat-input { 
+            display: flex; 
+            padding: 1rem; 
+            border-top: 1px solid #ddd; 
+        }
+        .chat-input input { 
+            flex: 1; 
+            padding: 0.75rem; 
+            border: 1px solid #ddd; 
+            border-radius: 20px; 
+        }
+        .chat-input button { 
+            margin-left: 0.5rem; 
+            background: #3498db; 
+            color: white; 
+            border: none; 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+        }
+
+        .chat-icon {
+            position: fixed; 
+            top: 20px;          /* <-- changed from bottom */
+            right: 20px; 
+            width: 60px; 
+            height: 60px; 
+            background: #3498db;
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: white; 
+            font-size: 1.5rem; 
+            cursor: pointer; 
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4); 
+            z-index: 1500;
+            transition: all 0.3s ease;
+            animation: float 3s ease-in-out infinite;
+        }
+        .chat-icon:hover { 
+            background: #2980b9; 
+            transform: scale(1.15) rotate(10deg); 
+            box-shadow: 0 10px 25px rgba(52, 152, 219, 0.5);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Popup */
+        .popup { 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); 
+            background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            z-index: 3000; text-align: center; display: none; min-width: 300px; opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .popup.active { display: block; transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        .popup-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.5); z-index: 2999; display: none; opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .popup-overlay.active { display: block; opacity: 1; }
+
+        /* Alert Popup */
+        .alert-popup {
+            position: fixed; top: 20px; right: 20px; background: #e74c3c; color: white; padding: 1rem 1.5rem;
+            border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 2000; 
+            max-width: 300px; display: none; font-size: 0.9rem;
+            animation: bounceIn 0.7s ease-out;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .sub-grid { display: none; }
+        .sub-grid.active { display: grid; }
+
+        /* ================== PAYMENT PAGE ================== */
+        .payment-page { max-width: 500px; margin: 2rem auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); display: none; animation: fadeInUp 0.6s ease-out; }
+        .payment-summary { border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 1rem; }
+        .payment-method { 
+            display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid #ddd; 
+            border-radius: 8px; margin-bottom: 1rem; cursor: pointer; transition: all 0.3s ease; 
+            position: relative; overflow: hidden;
+        }
+        .payment-method::after {
+            content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0;
+            background: rgba(52, 152, 219, 0.2); border-radius: 50%; 
+            transform: translate(-50%, -50%); transition: all 0.6s ease;
+        }
+        .payment-method.selected::after, .payment-method:hover::after {
+            width: 300px; height: 300px;
+        }
+        .payment-method:hover, .payment-method.selected { border-color: #3498db; background: #f8f9fa; }
+        .payment-method i { font-size: 1.5rem; color: #3498db; }
+        .payment-method input { display: none; }
+        .continue-btn { 
+            background: #27ae60; color: white; padding: 1rem; width: 100%; border: none; 
+            border-radius: 8px; font-size: 1.1rem; cursor: pointer; 
+            transition: all 0.3s ease; font-weight: bold;
+        }
+        .continue-btn:hover {
+            background: #219a52; transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(39, 174, 96, 0.4);
+        }
+        .card-form { margin-top: 1rem; display: none; padding: 1rem; background: #f8f9fa; border-radius: 8px; }
+        .card-form.active { display: block; }
+        .card-form input, .card-form select { width: 100%; padding: 0.75rem; margin: 0.5rem 0; border: 1px solid #ddd; border-radius: 4px; }
+
+        /* TRACKING PAGE */
+        .tracking-page { max-width: 600px; margin: 2rem auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); display: none; }
+        .tracking-header { text-align: center; margin-bottom: 2rem; }
+        .tracking-header h2 { color: #27ae60; }
+        .tracking-steps { position: relative; }
+        .step { display: flex; align-items: center; margin: 1.5rem 0; position: relative; padding-left: 50px; }
+        .step-icon { width: 40px; height: 40px; border-radius: 50%; background: #ddd; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; position: absolute; left: 0; z-index: 1; }
+        .step.completed .step-icon { background: #27ae60; }
+        .step.active .step-icon { background: #3498db; animation: pulse 1.5s infinite, bounce 0.6s ease-out; }
+        .step-text { flex: 1; }
+        .step-title { font-weight: bold; }
+        .step-time { font-size: 0.8rem; color: #777; }
+        .progress-line { position: absolute; top: 20px; left: 20px; width: 3px; background: #ddd; height: calc(100% - 40px); z-index: 0; }
+        .progress-fill { position: absolute; top: 0; left: 0; width: 100%; background: #27ae60; transition: height 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .dealer-confirmation { margin-top: 2rem; text-align: center; padding: 1.5rem; background: #fff3cd; border-radius: 8px; display:none; }
+        .confirm-btn { background: #28a745; color: white; padding: 1rem 2rem; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; }
+        .confirm-btn:hover { background: #218838; }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(52, 152, 219, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* SUMMARY & RETURN */
+        .summary-page { max-width: 600px; margin: 2rem auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); display: none; }
+        .summary-header { text-align: center; margin-bottom: 2rem; }
+        .summary-header h2 { color: #27ae60; }
+        .order-details { background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; }
+        .product-info { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+        .product-info img { width: 80px; height: 80px; object-fit: contain; border-radius: 4px; }
+        .return-section { margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px; }
+        .return-btn { background: #e74c3c; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 4px; cursor: pointer; }
+        .return-btn:hover { background: #c0392b; }
+        .return-form { margin-top: 1rem; display: none; }
+        .return-form.active { display: block; }
+        .return-form select, .return-form textarea { width: 100%; padding: 0.75rem; margin: 0.5rem 0; border: 1px solid #ddd; border-radius: 4px; }
+        .submit-return { background: #27ae60; color: white; padding: 0.75rem; width: 100%; border: none; border-radius: 4px; cursor: pointer; }
+        .submit-return:hover { background: #219a52; }
+        .refund-status { margin-top: 1rem; padding: 1rem; background: #d4edda; color: #155724; border-radius: 4px; text-align: center; font-weight: bold; display: none; }
+        .refund-status.active { display: block; }
+
+        /* SMS Notification */
+        .sms-notification {
+            position: fixed; top: 20px; right: 20px; background: #27ae60; color: white; padding: 1rem 1.5rem;
+            border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 2000; 
+            display: flex; align-items: center; gap: 1rem; max-width: 300px;
+            animation: slideInRight 0.6s ease-out, fadeOut 0.5s ease-out 3.5s forwards;
+            opacity: 1;
+        }
+        .sms-notification i { font-size: 1.5rem; }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateX(50px); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; }
+            .product-grid { grid-template-columns: 1fr; }
+            .category-selection { flex-direction: column; align-items: center; }
+            .chatbot-container, .chat-icon { top: 10px; right: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Main App -->
+    <div id="mainApp">
+        <header>
+            <button class="hamburger" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1>PDS Product & Inventory Management System</h1>
+        </header>
+        <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="system-title">PDS Management System</div>
+                <div class="user-greeting">
+                    <i class="fas fa-user"></i>
+                    <span>Hello,</span>
+                    <a href="#" onclick="signIn(); return false;">Sign In</a>
+                </div>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="menu-section">PROGRAMS & FEATURES</li>
+                <li class="menu-item" onclick="showTab('categoryMgmt')"><i class="fas fa-plus"></i> Category Management</li>
+                <li class="menu-item active" onclick="showTab('products')"><i class="fas fa-box"></i> Product Details</li>
+                <li class="menu-item" onclick="showTab('dashboard')"><i class="fas fa-chart-bar"></i> Dashboard</li>
+                <li class="menu-section">HELP & SETTINGS</li>
+                <li class="menu-item" onclick="showTab('help')"><i class="fas fa-question-circle"></i> Help</li>
+                <li class="menu-item" onclick="showTab('feedback')"><i class="fas fa-comment"></i> Feedback</li>
+                <li class="menu-item" onclick="showTab('alerts')"><i class="fas fa-bell"></i> Alerts</li>
+            </ul>
+        </nav>
+
+        <div class="container">
+            <!-- Product Details -->
+            <div id="products" class="tab-content active">
+                <h2>Product Details Management</h2>
+                <div id="categorySelection" class="category-selection">
+                    <button class="category-btn active" data-category="groceries" onclick="showCategory('groceries', this)">
+                        <i class="fas fa-shopping-basket"></i> Groceries
+                    </button>
+                    <button class="category-btn" data-category="household" onclick="showCategory('household', this)">
+                        <i class="fas fa-home"></i> Household
+                    </button>
+                    <button class="category-btn" data-category="personal" onclick="showCategory('personal', this)">
+                        <i class="fas fa-user-circle"></i> Personal Care
+                    </button>
+                </div>
+                <div id="groceriesGrid" class="product-grid sub-grid active"></div>
+                <div id="householdGrid" class="product-grid sub-grid"></div>
+                <div id="personalGrid" class="product-grid sub-grid"></div>
+            </div>
+
+            <!-- Category Management -->
+            <div id="categoryMgmt" class="tab-content">
+                <h2>Add New Product</h2>
+                <form id="addProductForm">
+                    <div class="form-group">
+                        <label>Product Name</label>
+                        <input type="text" id="prodName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="prodDesc" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Price (₹)</label>
+                        <input type="number" id="prodPrice" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Unit (e.g., 5kg, 1L)</label>
+                        <input type="text" id="prodUnit" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Initial Stock</label>
+                        <input type="number" id="prodStock" value="10" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="prodCategory">
+                            <option value="groceries">Groceries</option>
+                            <option value="household">Household</option>
+                            <option value="personal">Personal Care</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Product Image URL (optional)</label>
+                        <input type="url" id="prodImageUrl" placeholder="https://example.com/image.jpg">
+                    </div>
+                    <button type="submit" class="btn-primary">Add Product</button>
+                </form>
+            </div>
+
+            <!-- Dashboard -->
+            <div id="dashboard" class="tab-content">
+                <h2>Inventory Dashboard</h2>
+                <div class="chart-container">
+                    <canvas id="stockChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Help -->
+            <div id="help" class="tab-content">
+                <h2>Help Center</h2>
+                <p>Click the chat icon below to talk to our assistant.</p>
+            </div>
+
+            <!-- Feedback -->
+            <div id="feedback" class="tab-content">
+                <h2>Send Feedback</h2>
+                <textarea id="feedbackText" placeholder="Your feedback helps us improve..." style="height:150px;"></textarea>
+                <button class="btn-primary" style="margin-top:1rem;" onclick="submitFeedback()">Submit Feedback</button>
+            </div>
+
+            <!-- Alerts -->
+            <div id="alerts" class="tab-content">
+                <h2>Product Alerts</h2>
+                <p>Low stock or expiring products will be shown here.</p>
+                <div id="alertsGrid" class="product-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================== PAYMENT PAGE ================== -->
+    <div id="paymentPage" class="payment-page">
+        <h2>Complete Your Payment</h2>
+        <div class="payment-summary">
+            <h3 id="paymentProductName"></h3>
+            <p>Quantity: <strong id="paymentQty"></strong></p>
+            <p>Total Amount: <strong id="paymentTotal" style="color: #b12704; font-size: 1.3rem;"></strong></p>
+        </div>
+        <h3>Select Payment Method</h3>
+        <label class="payment-method" onclick="selectPayment('upi')">
+            <input type="radio" name="payment" value="upi"><i class="fas fa-mobile-alt"></i>
+            <div><strong>UPI</strong><br><small>Pay using BHIM, Google Pay, etc.</small></div>
+        </label>
+        <label class="payment-method" onclick="selectPayment('credit')">
+            <input type="radio" name="payment" value="credit"><i class="fas fa-credit-card"></i>
+            <div><strong>Credit Card</strong><br><small>Visa, MasterCard</small></div>
+        </label>
+        <label class="payment-method" onclick="selectPayment('debit')">
+            <input type="radio" name="payment" value="debit"><i class="fas fa-credit-card"></i>
+            <div><strong>Debit Card</strong><br><small>ATM Card</small></div>
+        </label>
+        <label class="payment-method" onclick="selectPayment('emi')">
+            <input type="radio" name="payment" value="emi"><i class="fas fa-calendar-alt"></i>
+            <div><strong>No Cost EMI</strong><br><small>0% interest</small></div>
+        </label>
+        <label class="payment-method" onclick="selectPayment('cod')">
+            <input type="radio" name="payment" value="cod"><i class="fas fa-money-bill-wave"></i>
+            <div><strong>Cash on Delivery</strong><br><small>Pay when you receive</small></div>
+        </label>
+
+        <div id="cardForm" class="card-form">
+            <input type="text" id="cardNumber" placeholder="Card Number (e.g., 1234 5678 9012 3456)" maxlength="19">
+            <div style="display:flex;gap:0.5rem;">
+                <input type="text" id="cardExpiry" placeholder="MM/YY" maxlength="5" style="flex:1;">
+                <input type="password" id="cardCVV" placeholder="CVV" maxlength="4" style="flex:1;">
+            </div>
+            <div id="emiTenure" style="display:none;">
+                <select><option>3 months</option><option>6 months</option><option>9 months</option><option>12 months</option></select>
+            </div>
+        </div>
+
+        <button class="continue-btn" onclick="processPayment()">Continue to Pay</button>
+        <button style="margin-top:1rem;background:#95a5a6;" onclick="goBackToProducts()">Back</button>
+    </div>
+
+    <!-- ================== TRACKING PAGE ================== -->
+    <div id="trackingPage" class="tracking-page">
+        <div class="tracking-header">
+            <h2>Order Confirmed!</h2>
+            <p>Tracking ID: <strong id="trackingId">#PDS123456</strong></p>
+        </div>
+        <div class="tracking-steps">
+            <div class="progress-line"><div class="progress-fill" id="progressFill" style="height:0%;"></div></div>
+            <div class="step completed" id="step1"><div class="step-icon">Check</div><div class="step-text"><div class="step-title">Order Placed</div><div class="step-time">Just now</div></div></div>
+            <div class="step" id="step2"><div class="step-icon">Package</div><div class="step-text"><div class="step-title">Shipped</div><div class="step-time">Estimated: 2 hours</div></div></div>
+            <div class="step" id="step3"><div class="step-icon">Truck</div><div class="step-text"><div class="step-title">Out for Delivery</div><div class="step-time">Estimated: 4 hours</div></div></div>
+            <div class="step" id="step4"><div class="step-icon">Home</div><div class="step-text"><div class="step-title">Delivered</div><div class="step-time">Estimated: 6 hours</div></div></div>
+        </div>
+        <div class="dealer-confirmation" id="dealerConfirmSection">
+            <h3>Dealer: Please Confirm Receipt</h3>
+            <p>Click below to confirm you have received the product.</p>
+            <button class="confirm-btn" onclick="dealerConfirm()">I Have Received the Product</button>
+        </div>
+    </div>
+
+    <!-- ================== SUMMARY & RETURN PAGE ================== -->
+    <div id="summaryPage" class="summary-page">
+        <div class="summary-header">
+            <h2>Order Delivered Successfully!</h2>
+            <p>Tracking ID: <strong id="summaryTrackingId">#PDS123456</strong></p>
+        </div>
+        <div class="order-details">
+            <h3>Product Details</h3>
+            <div class="product-info" id="deliveredProductInfo"></div>
+            <p>Total Paid: <strong id="summaryTotal" style="color:#b12704;font-size:1.3rem;"></strong></p>
+        </div>
+        <div class="return-section">
+            <button class="return-btn" onclick="showReturnForm()">Return Product</button>
+            <div class="return-form" id="returnForm">
+                <h3>Request Return</h3>
+                <select id="returnReason"><option value="">Select Reason</option><option value="wrong">Wrong Product</option><option value="damaged">Damaged</option><option value="other">Others</option></select>
+                <textarea id="returnComment" placeholder="Additional comments (optional)"></textarea>
+                <button class="submit-return" onclick="submitReturn()">Submit Return Request</button>
+            </div>
+            <div id="returnStatus" class="refund-status"></div>
+        </div>
+        <button class="continue-btn" style="margin-top:2rem;" onclick="goBackToProducts()">Continue Shopping</button>
+    </div>
+
+    <!-- SMS Notification -->
+    <div id="smsNotification" class="sms-notification" style="display:none;">
+        <i class="fas fa-sms"></i>
+        <div><strong>SMS Sent!</strong><br><small>Delivery confirmed. Thank you!</small></div>
+    </div>
+
+    <!-- Chat Icon (top-right) -->
+    <div class="chat-icon" id="chatIcon" onclick="toggleChatbot()">
+        <i class="fas fa-comments"></i>
+    </div>
+
+    <!-- Chatbot (top-right) -->
+    <div class="chatbot-container" id="chatbot">
+        <div class="chat-header">
+            PDS Assistant
+            <button onclick="toggleChatbot()" style="background:none;border:none;color:white;font-size:1.2rem;cursor:pointer;">×</button>
+        </div>
+        <div class="chat-body" id="chatBody"></div>
+        <div class="chat-input">
+            <input type="text" id="chatInput" placeholder="Ask a question..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <!-- General Popup -->
+    <div class="popup-overlay" id="popupOverlay" onclick="closePopup()"></div>
+    <div class="popup" id="popup">
+        <h3 id="popupTitle">Success</h3>
+        <p id="popupMessage">Thank you!</p>
+        <button class="btn-primary" onclick="closePopup()">OK</button>
+    </div>
+
+    <!-- Alert Popup -->
+    <div id="alertPopup" class="alert-popup">
+        <strong>Low Stock Alert!</strong><br>
+        <div id="alertContent"></div>
+    </div>
+
+    <script>
+        let products = [];
+        let chart = null;
+        let currentCategory = 'groceries';
+        let selectedProduct = null;
+        let currentOrder = null;
+        let selectedPaymentMethod = null;
+
+        // -------------------------------------------------
+        // 1. INITIALISE PRODUCTS
+        // -------------------------------------------------
+        function initProducts() {
+            products = [
+                // GROCERIES
+                { id: 1, name: 'Daawat Super Basmati Rice', categoryType: 'groceries', desc: 'Fluffy Long Grains | Cooked upto 20mm', price: 699, unit: '5kg', stock: 3, distributed: 41, images: ['https://m.media-amazon.com/images/I/81RtZjbCOPL._SL1500_.jpg'], rating: 4.3, badge: "Low Stock!" },
+                { id: 2, name: 'Daawat Rozana Super Basmati Rice', categoryType: 'groceries', desc: 'For Everyday Consumption | Cooked Grain Upto 13mm', price: 329, unit: '5kg', stock: 8, distributed: 102, images: ['https://m.media-amazon.com/images/I/71sVQW+Ts4L._SL1500_.jpg'], rating: 4.0, badge: "Best Seller" },
+                { id: 3, name: 'PUVI 1L Cold Pressed Mustard Oil', categoryType: 'groceries', desc: 'Slow grind Ghani made | Additives free | True cold pressed', price: 495, unit: '1L', stock: 15, distributed: 50, images: ['https://m.media-amazon.com/images/I/61kHXbVGI6L._SL1200_.jpg'], rating: 4.3 },
+                { id: 4, name: 'Fortune Sunlite Refined Sunflower Oil', categoryType: 'groceries', desc: 'Light & Healthy Cooking Oil | 870gm Pouch', price: 175, unit: '870gm', stock: 25, distributed: 60, images: ['https://m.media-amazon.com/images/I/61fO3J6s9TL._SL1200_.jpg'], rating: 4.4, badge: "Best Seller" },
+                { id: 5, name: 'Tata Sampann Unpolished Toor Dal', categoryType: 'groceries', desc: 'Rich in Protein | 1kg Pack', price: 185, unit: '1kg', stock: 12, distributed: 35, images: ['https://m.media-amazon.com/images/I/81q7FhSVA3L._SL1500_.jpg'], rating: 4.2 },
+                { id: 6, name: 'Aashirvaad Whole Wheat Atta', categoryType: 'groceries', desc: '100% MP Sharbati Wheat | 5kg', price: 285, unit: '5kg', stock: 4, distributed: 78, images: ['https://m.media-amazon.com/images/I/81Z4b9k1NFL._SL1500_.jpg'], rating: 4.5, badge: "Low Stock!" },
+                { id: 7, name: 'Tata Salt', categoryType: 'groceries', desc: 'Iodized Salt | 1kg Pack', price: 22, unit: '1kg', stock: 45, distributed: 120, images: ['https://m.media-amazon.com/images/I/71e9OYN+xdL._SL1500_.jpg'], rating: 4.6 },
+                { id: 8, name: 'India Gate Basmati Rice Classic', categoryType: 'groceries', desc: 'Aged Basmati Rice | 1kg', price: 199, unit: '1kg', stock: 18, distributed: 42, images: ['https://m.media-amazon.com/images/I/71qqNqBHBCL._SL1500_.jpg'], rating: 4.1 },
+                // HOUSEHOLD
+                { id: 9, name: 'Vim Dishwash Gel', categoryType: 'household', desc: 'Lemon | 750ml | Grease Cleaner', price: 125, unit: '750ml', stock: 22, distributed: 58, images: ['https://m.media-amazon.com/images/I/61pYb4EaYDL._SL1500_.jpg'], rating: 4.3 },
+                { id: 10, name: 'Lizol Disinfectant Surface Cleaner', categoryType: 'household', desc: 'Citrus | 975ml | Kills 99.9% Germs', price: 195, unit: '975ml', stock: 4, distributed: 45, images: ['https://m.media-amazon.com/images/I/61PHuE60jAL._SL1500_.jpg'], rating: 4.4, badge: "Low Stock!" },
+                { id: 11, name: 'Surf Excel Easy Wash Detergent Powder', categoryType: 'household', desc: 'Removes Tough Stains | 2kg', price: 285, unit: '2kg', stock: 15, distributed: 62, images: ['https://m.media-amazon.com/images/I/71VQZ8D+JfL._SL1500_.jpg'], rating: 4.2 },
+                { id: 12, name: 'Harpic Toilet Cleaner', categoryType: 'household', desc: 'Original | 1L | Kills 99.9% Germs', price: 149, unit: '1L', stock: 28, distributed: 71, images: ['https://m.media-amazon.com/images/I/61z0zJK9ypL._SL1500_.jpg'], rating: 4.5 },
+                { id: 13, name: 'Scotch-Brite Scrub Pad', categoryType: 'household', desc: 'Large Size | Pack of 6', price: 99, unit: '6 pcs', stock: 35, distributed: 88, images: ['https://m.media-amazon.com/images/I/71vqG8HkJjL._SL1500_.jpg'], rating: 4.3 },
+                { id: 14, name: 'Gala Spin Mop', categoryType: 'household', desc: '360° Rotating Head | Easy Clean', price: 599, unit: '1 pc', stock: 3, distributed: 22, images: ['https://m.media-amazon.com/images/I/61S8EHxd7uL._SL1500_.jpg'], rating: 4.0, badge: "Low Stock!" },
+                { id: 15, name: 'Good Knight Advanced Liquid Vaporizer', categoryType: 'household', desc: '45ml Refill | 45 Nights Protection', price: 115, unit: '45ml', stock: 42, distributed: 95, images: ['https://m.media-amazon.com/images/I/61xj+VmBYLL._SL1500_.jpg'], rating: 4.2 },
+                { id: 16, name: 'Ariel Matic Liquid Detergent', categoryType: 'household', desc: 'Front Load | 1L | Deep Clean', price: 285, unit: '1L', stock: 19, distributed: 54, images: ['https://m.media-amazon.com/images/I/61D3bBT0EaL._SL1500_.jpg'], rating: 4.4, badge: "Best Seller" },
+                // PERSONAL CARE
+                { id: 17, name: 'Colgate Maxfresh Toothpaste', categoryType: 'personal', desc: 'Blue Gel | Cooling Crystals | 150gm', price: 115, unit: '150gm', stock: 48, distributed: 112, images: ['https://m.media-amazon.com/images/I/61gOXjV4TaL._SL1500_.jpg'], rating: 4.5 },
+                { id: 18, name: 'Dettol Soap Original', categoryType: 'personal', desc: 'Germ Protection | Pack of 4 | 125gm each', price: 145, unit: '500gm', stock: 32, distributed: 87, images: ['https://m.media-amazon.com/images/I/71dN7zCE1-L._SL1500_.jpg'], rating: 4.4 },
+                { id: 19, name: 'Parachute Coconut Oil', categoryType: 'personal', desc: '100% Pure Coconut Oil | 500ml', price: 185, unit: '500ml', stock: 4, distributed: 68, images: ['https://m.media-amazon.com/images/I/61C0Tpjq9xL._SL1500_.jpg'], rating: 4.6, badge: "Low Stock!" },
+                { id: 20, name: 'Pantene Shampoo Total Damage Care', categoryType: 'personal', desc: 'Pro-Vitamin Formula | 340ml', price: 275, unit: '340ml', stock: 22, distributed: 53, images: ['https://m.media-amazon.com/images/I/61bVlJL4nIL._SL1500_.jpg'], rating: 4.3 },
+                { id: 21, name: 'Nivea Soft Light Moisturizing Cream', categoryType: 'personal', desc: 'All Skin Types | 200ml', price: 199, unit: '200ml', stock: 28, distributed: 72, images: ['https://m.media-amazon.com/images/I/51cP7nQk6OL._SL1080_.jpg'], rating: 4.5 },
+                { id: 22, name: 'Gillette Guard Razor', categoryType: 'personal', desc: 'Safety Razor | Pack of 2', price: 68, unit: '2 pcs', stock: 4, distributed: 39, images: ['https://m.media-amazon.com/images/I/61WLRG8jjnL._SL1500_.jpg'], rating: 4.2, badge: "Low Stock!" },
+                { id: 23, name: 'Himalaya Face Wash Purifying Neem', categoryType: 'personal', desc: 'Deep Cleansing | 150ml', price: 145, unit: '150ml', stock: 36, distributed: 81, images: ['https://m.media-amazon.com/images/I/61gtVd0ZKSL._SL1500_.jpg'], rating: 4.4 },
+                { id: 24, name: 'Pepsodent Toothbrush', categoryType: 'personal', desc: 'Medium | Pack of 6', price: 99, unit: '6 pcs', stock: 42, distributed: 96, images: ['https://m.media-amazon.com/images/I/61ZSEIGfcRL._SL1500_.jpg'], rating: 4.1 }
+            ];
+        }
+
+        // -------------------------------------------------
+        // 2. UI HELPERS
+        // -------------------------------------------------
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+            toggleSidebar();
+            if (tabId === 'products') showCategory(currentCategory, document.querySelector(`[data-category="${currentCategory}"]`));
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'alerts') renderAlerts();
+            if (tabId === 'help') setTimeout(() => toggleChatbot(true), 500);
+        }
+
+        function showCategory(catType, btn) {
+            currentCategory = catType;
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.querySelectorAll('.sub-grid').forEach(g => g.classList.remove('active'));
+            const grid = document.getElementById(catType + 'Grid');
+            if (grid) {
+                grid.classList.add('active');
+                renderCategoryProducts(catType);
+            }
+        }
+
+        function renderCategoryProducts(catType) {
+            const filtered = products.filter(p => p.categoryType === catType);
+            const grid = document.getElementById(catType + 'Grid');
+            grid.innerHTML = '';
+            filtered.forEach((p, i) => {
+                setTimeout(() => renderProductCard(p, grid), i * 100);
+            });
+        }
+
+        function renderProductCard(p, grid) {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            const imageHtml = p.images?.[0] ? `<img src="${p.images[0]}" class="product-image" alt="${p.name}">` : '<div class="no-image">No Image</div>';
+            const badgeClass = p.badge === "Best Seller" ? "bestseller" : "";
+            const badge = p.badge ? `<div class="product-badge ${badgeClass}">${p.badge}</div>` : '';
+            const stars = '★'.repeat(Math.floor(p.rating)) + '☆'.repeat(5 - Math.floor(p.rating));
+            const stockClass = p.stock < 10 ? 'low' : '';
+
+            card.innerHTML = `
+                <div style="position:relative;">${badge}${imageHtml}</div>
+                <div class="product-name">${p.name}</div>
+                <div class="product-desc">${p.desc}</div>
+                <div class="product-price">₹${p.price} <small>per ${p.unit}</small></div>
+                <div class="product-rating"><span class="product-rating-stars">${stars}</span> ${p.rating}</div>
+                <div class="stock-info ${stockClass}">Stock: ${p.stock} units</div>
+                <div class="quantity-selector">
+                    <button class="quantity-btn" onclick="changeQty(${p.id},-1,event)">−</button>
+                    <input type="text" class="quantity-input" id="qty-${p.id}" value="1" readonly>
+                    <button class="quantity-btn" onclick="changeQty(${p.id},1,event)">+</button>
+                    <span>${p.unit}</span>
+                </div>
+                <button class="book-now-btn" onclick="bookNow(${p.id})">Book Now</button>
+            `;
+            grid.appendChild(card);
+        }
+
+        function changeQty(id, change, e) {
+            e.stopPropagation();
+            const input = document.getElementById(`qty-${id}`);
+            let qty = parseInt(input.value) + change;
+            if (qty < 1) qty = 1;
+            const product = products.find(p => p.id === id);
+            if (qty > product.stock) qty = product.stock;
+            input.value = qty;
+        }
+
+        // -------------------------------------------------
+        // 3. BOOK → PAYMENT → TRACKING → SUMMARY
+        // -------------------------------------------------
+        function bookNow(id) {
+            const product = products.find(p => p.id === id);
+            const qty = parseInt(document.getElementById(`qty-${id}`).value);
+
+            if (product.stock < qty) {
+                showPopup("Insufficient Stock", `Only ${product.stock} units available for ${product.name}`);
+                return;
+            }
+            selectedProduct = { ...product, qty };
+            document.getElementById('mainApp').style.display = 'none';
+            document.getElementById('paymentPage').style.display = 'block';
+            document.getElementById('paymentProductName').textContent = product.name;
+            document.getElementById('paymentQty').textContent = `${qty} × ${product.unit}`;
+            document.getElementById('paymentTotal').textContent = `₹${product.price * qty}`;
+        }
+
+        function selectPayment(method) {
+            selectedPaymentMethod = method;
+            document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
+            event.target.closest('.payment-method').classList.add('selected');
+            const cardForm = document.getElementById('cardForm');
+            const emiTenure = document.getElementById('emiTenure');
+            if (['credit','debit','emi'].includes(method)) {
+                cardForm.classList.add('active');
+                emiTenure.style.display = method === 'emi' ? 'block' : 'none';
+            } else {
+                cardForm.classList.remove('active');
+            }
+        }
+
+        function processPayment() {
+            if (!selectedPaymentMethod) return showPopup("Error", "Please select a payment method.");
+            if (['credit','debit','emi'].includes(selectedPaymentMethod)) {
+                const num = document.getElementById('cardNumber').value.trim();
+                const exp = document.getElementById('cardExpiry').value.trim();
+                const cvv = document.getElementById('cardCVV').value.trim();
+                if (!num || !exp || !cvv) return showPopup("Error", "Please fill all card details.");
+            }
+
+            const p = selectedProduct;
+            p.stock -= selectedProduct.qty;
+            p.distributed += selectedProduct.qty;
+
+            currentOrder = {
+                id: 'PDS' + Date.now().toString().slice(-6),
+                product: selectedProduct,
+                total: selectedProduct.price * selectedProduct.qty,
+                dealerConfirmed: false
+            };
+
+            setTimeout(() => {
+                document.getElementById('paymentPage').style.display = 'none';
+                document.getElementById('trackingPage').style.display = 'block';
+                document.getElementById('trackingId').textContent = `#${currentOrder.id}`;
+                startLiveTracking();
+                renderDashboard();
+                renderAlerts();
+            }, 1000);
+        }
+
+        function startLiveTracking() {
+            const steps = [
+                { id: 'step2', time: 2000, height: 33 },
+                { id: 'step3', time: 4000, height: 66 },
+                { id: 'step4', time: 6000, height: 100 }
+            ];
+            steps.forEach((s, i) => {
+                setTimeout(() => {
+                    document.getElementById(s.id).classList.add('completed');
+                    if (i < steps.length-1) document.getElementById(s.id).classList.add('active');
+                    document.getElementById('progressFill').style.height = s.height + '%';
+                    document.querySelector(`#${s.id} .step-time`).textContent = new Date().toLocaleTimeString();
+                    if (i === steps.length-1) {
+                        setTimeout(() => document.getElementById('dealerConfirmSection').style.display = 'block', 1000);
+                    }
+                }, s.time);
+            });
+        }
+
+        function dealerConfirm() {
+            currentOrder.dealerConfirmed = true;
+            document.getElementById('dealerConfirmSection').style.display = 'none';
+            showSMSNotification();
+            setTimeout(goToSummaryPage, 1500);
+        }
+
+        function showSMSNotification() {
+            const sms = document.getElementById('smsNotification');
+            sms.style.display = 'flex';
+            setTimeout(() => sms.style.display = 'none', 4000);
+        }
+
+        function goToSummaryPage() {
+            document.getElementById('trackingPage').style.display = 'none';
+            document.getElementById('summaryPage').style.display = 'block';
+            document.getElementById('summaryTrackingId').textContent = `#${currentOrder.id}`;
+            document.getElementById('summaryTotal').textContent = `₹${currentOrder.total}`;
+            const info = document.getElementById('deliveredProductInfo');
+            const p = currentOrder.product;
+            info.innerHTML = `<img src="${p.images[0] || 'https://via.placeholder.com/80'}" alt="${p.name}">
+                <div><strong>${p.name}</strong><br><small>${p.desc}</small><br><strong>Qty: ${p.qty} × ${p.unit}</strong></div>`;
+        }
+
+        function showReturnForm() { document.getElementById('returnForm').classList.add('active'); }
+
+        function submitReturn() {
+            const reason = document.getElementById('returnReason').value;
+            if (!reason) return showPopup("Error", "Please select a return reason.");
+            setTimeout(() => {
+                document.getElementById('returnForm').style.display = 'none';
+                const status = document.getElementById('returnStatus');
+                status.innerHTML = `Return Accepted!<br><small>Refund of <strong>₹${currentOrder.total}</strong> in 4-5 days.</small>`;
+                status.classList.add('active');
+                setTimeout(() => {
+                    status.innerHTML = `Refund Completed!<br><strong>₹${currentOrder.total}</strong> credited.</strong>`;
+                }, 3000);
+            }, 1000);
+        }
+
+        function goBackToProducts() {
+            ['summaryPage','paymentPage','trackingPage'].forEach(id => document.getElementById(id).style.display = 'none');
+            document.getElementById('mainApp').style.display = 'block';
+            showCategory(currentCategory, document.querySelector(`[data-category="${currentCategory}"]`));
+        }
+
+        // -------------------------------------------------
+        // 4. ADD PRODUCT
+        // -------------------------------------------------
+        document.getElementById('addProductForm').onsubmit = function(e) {
+            e.preventDefault();
+            const imageUrl = document.getElementById('prodImageUrl').value || 'https://via.placeholder.com/280x200?text=No+Image';
+            const newProd = {
+                id: Date.now(),
+                name: document.getElementById('prodName').value,
+                desc: document.getElementById('prodDesc').value,
+                price: parseInt(document.getElementById('prodPrice').value),
+                unit: document.getElementById('prodUnit').value,
+                stock: parseInt(document.getElementById('prodStock').value),
+                distributed: 0,
+                categoryType: document.getElementById('prodCategory').value,
+                images: [imageUrl],
+                rating: 4.5
+            };
+            products.push(newProd);
+            showPopup("Success", "Product added successfully!");
+            document.getElementById('addProductForm').reset();
+            renderCategoryProducts(newProd.categoryType);
+            renderDashboard();
+        };
+
+        // -------------------------------------------------
+        // 5. DASHBOARD
+        // -------------------------------------------------
+        function renderDashboard() {
+            const ctx = document.getElementById('stockChart');
+            if (!ctx) return;
+            const labels = products.map(p => p.name.substring(0, 15) + (p.name.length > 15 ? '...' : ''));
+            const stock = products.map(p => p.stock);
+            const distributed = products.map(p => p.distributed || 0);
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'In Stock', data: stock, backgroundColor: '#27ae60' },
+                        { label: 'Distributed', data: distributed, backgroundColor: '#3498db' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // -------------------------------------------------
+        // 6. ALERTS
+        // -------------------------------------------------
+        function renderAlerts() {
+            const lowStock = products.filter(p => p.stock < 10);
+            const grid = document.getElementById('alertsGrid');
+            grid.innerHTML = '';
+            if (lowStock.length === 0) {
+                grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; padding:2rem; color:#27ae60; font-weight:bold;">All products have sufficient stock!</p>';
+                return;
+            }
+            lowStock.forEach(p => renderProductCard(p, grid));
+        }
+
+        // -------------------------------------------------
+        // 7. CHATBOT
+        // -------------------------------------------------
+        function toggleChatbot(force) {
+            const chat = document.getElementById('chatbot');
+            const icon = document.getElementById('chatIcon');
+            if (force !== undefined) {
+                chat.classList.toggle('active', force);
+                icon.style.display = force ? 'none' : 'flex';
+            } else {
+                chat.classList.toggle('active');
+                icon.style.display = chat.classList.contains('active') ? 'none' : 'flex';
+            }
+            if (chat.classList.contains('active') && document.getElementById('chatBody').children.length === 0) {
+                addBotMessage("Hello! How can I help you with the PDS system?");
+            }
+        }
+
+        function addBotMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'chat-message bot-message';
+            div.textContent = text;
+            document.getElementById('chatBody').appendChild(div);
+            div.scrollIntoView();
+        }
+
+        function addUserMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'chat-message user-message';
+            div.textContent = text;
+            document.getElementById('chatBody').appendChild(div);
+            div.scrollIntoView();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            addUserMessage(msg);
+            input.value = '';
+            const responses = {
+                "add product": "Go to Category Management → Fill the form → Add image URL → Click Add Product.",
+                "low stock": "Check the Alerts tab or Dashboard to see low stock items.",
+                "book": "Go to Product Details → Select category → Choose product → Set quantity → Click Book Now.",
+                "return": "Return within 7 days if the product is damaged or defective.",
+                "contact": "Email: support@pds.gov.in | Phone: 1800-XXX-XXXX",
+                "hello": "Hi! How can I assist you today?",
+                "hi": "Hello! What would you like to know?",
+                "bye": "Goodbye! Have a great day!",
+                "help": "I can help you with adding products, checking stock, booking items, and more. Just ask!",
+                "stock": "You can check stock levels in the Product Details section or view the Dashboard for a complete overview."
+            };
+            let reply = null;
+            for (let key in responses) {
+                if (msg.toLowerCase().includes(key)) {
+                    reply = responses[key];
+                    break;
+                }
+            }
+            if (!reply) reply = "I don't understand that question. Try asking about: adding products, low stock, booking, returns, or contact info.";
+            setTimeout(() => addBotMessage(reply), 500);
+        }
+
+        // -------------------------------------------------
+        // 8. FEEDBACK & SIGN-IN
+        // -------------------------------------------------
+        function submitFeedback() {
+            const text = document.getElementById('feedbackText').value.trim();
+            if (!text) return alert("Please write your feedback.");
+            showPopup("Thank You!", "Thank you for your valuable feedback. We will review it shortly.");
+            document.getElementById('feedbackText').value = '';
+        }
+
+        function signIn() {
+            showPopup("Sign In", "Sign-in functionality will be implemented soon!");
+        }
+
+        // -------------------------------------------------
+        // 9. LOW-STOCK POPUP (every 10 s)
+        // -------------------------------------------------
+        function showStockAlert() {
+            const lowStock = products.filter(p => p.stock < 5);
+            if (lowStock.length === 0) return;
+            const content = lowStock.map(p => `${p.name}: ${p.stock} left`).join('<br>');
+            document.getElementById('alertContent').innerHTML = content;
+            const popup = document.getElementById('alertPopup');
+            popup.style.display = 'block';
+            setTimeout(() => popup.style.display = 'none', 4000);
+        }
+        setInterval(showStockAlert, 10000);
+
+        // -------------------------------------------------
+        // 10. POPUP
+        // -------------------------------------------------
+        function showPopup(title, message) {
+            document.getElementById('popupTitle').textContent = title;
+            document.getElementById('popupMessage').innerHTML = message;
+            document.getElementById('popup').classList.add('active');
+            document.getElementById('popupOverlay').classList.add('active');
+        }
+
+        function closePopup() {
+            document.getElementById('popup').classList.remove('active');
+            document.getElementById('popupOverlay').classList.remove('active');
+        }
+
+        // -------------------------------------------------
+        // 11. INITIALISE
+        // -------------------------------------------------
+        window.onload = () => {
+            initProducts();
+            renderCategoryProducts('groceries');
+            renderDashboard();
+            showStockAlert();
+        };
+    </script>
+</body>
+</html>

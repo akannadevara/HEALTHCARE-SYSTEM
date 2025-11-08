@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-collapsed="false">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Civil Supplies Admin — White & Blue</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sora:wght@600;700&display=swap" rel="stylesheet">
+  <!-- Material Symbols -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:FILL@0..1" rel="stylesheet"/>
+
+  <!-- Leaflet (for real geographic map) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    /* ===================== DESIGN TOKENS ===================== */
+    :root{
+      /* Fonts */
+      --font-head: "Sora", system-ui, -apple-system, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+      --font-ui: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+
+      /* White & Blue (DEFAULT) */
+      --bg-page: #f6f8fb;
+      --bg-header: #2563eb;
+      --bg-sidebar: #ffffff;
+      --sidebar-border: #e6eaf2;
+
+      --card: #ffffff;
+      --card-2: #ffffff;
+      --card-3: #ffffff;
+
+      --text-900: #0f172a;
+      --text-700: #334155;
+      --text-500: #6b7280;
+      --text-inverse: #ffffff;
+
+      --primary: #2563eb;
+      --primary-600:#2563eb;
+      --primary-700:#1e40af;
+      --primary-soft:#e9efff;
+      --ring: rgba(37,99,235,.18);
+
+      --border: #e5e7eb;
+      --border-strong:#d1d5db;
+      --radius: 12px;
+
+      --elev-1: 0 2px 8px rgba(15, 23, 42, .06);
+      --elev-2: 0 6px 16px rgba(15, 23, 42, .08);
+      --elev-3: 0 10px 24px rgba(15, 23, 42, .12);
+
+      --success:#16a34a; --warn:#f59e0b; --danger:#ef4444; --info:#1d4ed8;
+      --badge-success-bg:#ecfdf5; --badge-success-b:#a7f3d0; --badge-success-t:#065f46;
+      --badge-warn-bg:#fffbeb; --badge-warn-b:#fde68a; --badge-warn-t:#92400e;
+      --badge-danger-bg:#fef2f2; --badge-danger-b:#fecaca; --badge-danger-t:#991b1b;
+      --badge-info-bg:#eef2ff; --badge-info-b:#c7d2fe; --badge-info-t:#3730a3;
+    }
+
+    /* ---- OPTIONAL DARK THEMES (unchanged) ---- */
+    html[data-theme="teal"]{
+      --bg-page: #0b1327; --bg-header: #0ea5a6; --bg-sidebar: rgba(255,255,255,.04);
+      --sidebar-border: rgba(255,255,255,.08);
+      --card:#0f172a; --card-2:#111827; --card-3:#0f172a;
+      --text-900:#e5faff; --text-700:#c3e8ee; --text-500:#a4cbd3; --text-inverse:#001018;
+      --primary:#06b6d4; --primary-600:#06b6d4; --primary-700:#0891b2; --primary-soft:#0b3440; --ring: rgba(6,182,212,.25);
+      --border: rgba(255,255,255,.10); --border-strong: rgba(255,255,255,.18);
+      --badge-success-bg:#083a2b; --badge-success-b:#116041; --badge-success-t:#a7f3d0;
+      --badge-warn-bg:#3b2a07; --badge-warn-b:#7e5f1b; --badge-warn-t:#fde68a;
+      --badge-danger-bg:#3b0d0d; --badge-danger-b:#7f1d1d; --badge-danger-t:#fecaca;
+      --badge-info-bg:#0b1e3e; --badge-info-b:#1e40af; --badge-info-t:#bfdbfe;
+    }
+    html[data-theme="purple"]{
+      --bg-page:#0f0b1a; --bg-header:#7c3aed; --bg-sidebar:rgba(255,255,255,.04);
+      --sidebar-border: rgba(255,255,255,.08);
+      --card:#141022; --card-2:#17122a; --card-3:#141022;
+      --text-900:#efe9ff; --text-700:#d9ccff; --text-500:#b9a8ff; --text-inverse:#120a27;
+      --primary:#8b5cf6; --primary-600:#7c3aed; --primary-700:#6d28d9; --primary-soft:#1b1037; --ring: rgba(139,92,246,.28);
+      --border: rgba(255,255,255,.10); --border-strong: rgba(255,255,255,.18);
+      --badge-success-bg:#0e2b19; --badge-success-b:#116041; --badge-success-t:#86efac;
+      --badge-warn-bg:#3b2a07; --badge-warn-b:#7e5f1b; --badge-warn-t:#fde68a;
+      --badge-danger-bg:#3b0d0d; --badge-danger-b:#7f1d1d; --badge-danger-t:#fecaca;
+      --badge-info-bg:#15153b; --badge-info-b:#4338ca; --badge-info-t:#c7d2fe;
+    }
+
+    /* ===================== GLOBAL ===================== */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:var(--font-ui); color:var(--text-900);
+      background: var(--bg-page);
+      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+    }
+    .app{
+      min-height:100vh;
+      display:grid;
+      grid-template-columns: 260px 1fr;
+      grid-template-rows: 64px 1fr;
+      grid-template-areas:
+        "sidebar header"
+        "sidebar main";
+    }
+
+    /* ===================== HEADER ===================== */
+    .appbar{
+      grid-area:header; position:sticky; top:0; z-index:30;
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:10px 16px; color:var(--text-inverse);
+      background: var(--bg-header);
+      box-shadow: var(--elev-2);
+    }
+    .brand{ display:flex; align-items:center; gap:12px }
+    .brand .logo{
+      width:42px; height:42px; border-radius:12px; display:grid; place-items:center;
+      background: rgba(255,255,255,.18); color:#fff;
+    }
+    .brand h1{ margin:0; font:700 18px var(--font-head) }
+    .brand p{ margin:0; font-size:12px; opacity:.9 }
+
+    .appbar-actions{ display:flex; align-items:center; gap:10px }
+    .select, .btn, .btn-icon{
+      border:1px solid transparent; background:#ffffff; color:#0f172a; border-radius:10px;
+      padding:8px 10px; font-weight:700; cursor:pointer; box-shadow: var(--elev-1);
+    }
+    .btn-primary{
+      background:#fff; border-color: rgba(255,255,255,.4); color:#0f172a;
+    }
+    .btn-primary .material-symbols-rounded{ vertical-align:-5px }
+    .btn-icon{ width:40px; height:40px; display:grid; place-items:center; padding:0 }
+    .chip{
+      padding:8px 10px; border-radius:999px; background:rgba(255,255,255,.18); color:#fff; font-weight:800;
+      border:1px solid rgba(255,255,255,.28);
+    }
+    .lang-switch{ display:flex; background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden }
+    .lang-switch button{ background:transparent; border:0; padding:8px 10px; font-weight:800; cursor:pointer }
+    .lang-switch button.active{ background:var(--primary-soft); color:var(--primary-700) }
+
+    /* ===================== SIDEBAR ===================== */
+    .sidebar{
+      grid-area:sidebar; background: var(--bg-sidebar); border-right:1px solid var(--sidebar-border);
+      position:sticky; top:0; height:100vh; display:flex; flex-direction:column; box-shadow: var(--elev-1);
+    }
+    .sidebar-header{
+      height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 12px;
+      border-bottom:1px solid var(--sidebar-border);
+      color: var(--text-700);
+    }
+    .collapse-btn{
+      background:#fff; border:1px solid var(--border); border-radius:10px; width:40px; height:40px; display:grid; place-items:center; cursor:pointer;
+    }
+    .nav{ padding:12px; display:flex; flex-direction:column; gap:8px; }
+    .nav button{
+      display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border); background:#fff; color:var(--text-700);
+      border-radius:10px; cursor:pointer; box-shadow: var(--elev-1); font-weight:800;
+    }
+    .nav button .material-symbols-rounded{ font-size:20px; color:var(--text-500) }
+    .nav button:hover{ border-color: var(--border-strong) }
+    .nav button.active{
+      border-color: transparent; background: var(--primary); color:#fff;
+      box-shadow: var(--elev-2);
+    }
+    .nav button.active .material-symbols-rounded{ color:#fff }
+
+    /* Collapsed widths */
+    html[data-collapsed="true"] .sidebar{ width:86px }
+    html[data-collapsed="false"] .sidebar{ width:260px }
+    html[data-collapsed="true"] .nav button span.label{ display:none }
+    html[data-collapsed="true"] .sidebar .title{ display:none }
+
+    /* ===================== MAIN & CARDS ===================== */
+    main{ grid-area:main; padding:16px 18px; min-width:0; }
+    .card{
+      background: var(--card); border:1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--elev-1); margin-top:14px;
+    }
+    .card-header{
+      padding:12px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background: var(--card-2);
+    }
+    .card-title{ font:800 16px var(--font-head); display:flex; align-items:center; gap:8px; color:var(--text-900) }
+    .card-body{ padding:12px 14px }
+
+    /* ===================== STATS ===================== */
+    .stats-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:12px }
+    .stat{
+      background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px;
+      box-shadow: var(--elev-1);
+    }
+    .stat .label{ font-weight:700; color:var(--text-500); text-transform:uppercase; font-size:11px; letter-spacing:.3px }
+    .stat .value{ margin-top:6px; font:800 28px var(--font-head); color:var(--primary-600) }
+
+    /* ===================== TABLES ===================== */
+    .table-wrap{ overflow:auto }
+    table{ width:100%; border-collapse:collapse; font-size:14px; background:#fff }
+    thead th{
+      text-align:left; padding:12px; background:#f8fafc; color:var(--text-700); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:1;
+    }
+    tbody td{ padding:12px; border-bottom:1px solid var(--border); color:var(--text-900) }
+    tbody tr:hover{ background:#f9fbff }
+
+    /* ===================== BADGES ===================== */
+    .badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; font-weight:800; border-radius:999px; font-size:12px; border:1px solid transparent }
+    .b-success{ background:var(--badge-success-bg); border-color:var(--badge-success-b); color:var(--badge-success-t) }
+    .b-warn{ background:var(--badge-warn-bg); border-color:var(--badge-warn-b); color:var(--badge-warn-t) }
+    .b-danger{ background:var(--badge-danger-bg); border-color:var(--badge-danger-b); color:var(--badge-danger-t) }
+    .b-info{ background:var(--badge-info-bg); border-color:var(--badge-info-b); color:var(--badge-info-t) }
+
+    /* ===================== FORMS ===================== */
+    .grid{ display:grid; gap:12px }
+    .grid-2{ grid-template-columns: repeat(2,minmax(0,1fr)) }
+    .grid-3{ grid-template-columns: repeat(3,minmax(0,1fr)) }
+    .field label{ display:block; margin:2px 0 6px; color:var(--text-700); font-weight:800; font-size:13px }
+    .input, .select-inp, .textarea{
+      width:100%; border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-size:14px; background:#fff; color:var(--text-900);
+      transition: box-shadow .15s ease, border-color .15s ease;
+    }
+    .input:focus, .select-inp:focus, .textarea:focus{
+      outline:none; border-color: var(--primary-600);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
+
+    /* Switch */
+    .switch{ position:relative; width:52px; height:28px; display:inline-block }
+    .switch input{ opacity:0; width:0; height:0 }
+    .slider{ position:absolute; inset:0; background:#e5e7eb; border-radius:999px; transition:.2s; border:1px solid #d4d9e0 }
+    .slider:before{ content:""; position:absolute; width:22px; height:22px; left:3px; top:3px; background:#fff; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,.12); transition:.2s }
+    .switch input:checked + .slider{ background: var(--primary-soft); border-color: var(--primary-600) }
+    .switch input:checked + .slider:before{ transform: translateX(24px) }
+
+    /* ===================== MODALS ===================== */
+    .modal{ position:fixed; inset:0; display:none; place-items:center; background:rgba(2,8,23,.35); z-index:50 }
+    .modal.show{ display:grid }
+    .modal-card{ background:#fff; border:1px solid var(--border); border-radius:16px; width:min(640px,92vw); box-shadow: var(--elev-3); overflow:hidden; max-height:90vh; overflow-y:auto }
+    .modal-head{ padding:12px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:#f8fafc }
+    .modal-body{ padding:12px 14px }
+    .close{ border:1px solid var(--border); background:#fff; width:40px; height:40px; border-radius:10px; display:grid; place-items:center; cursor:pointer }
+
+    /* ===================== TOAST ===================== */
+    .toast{
+      position:fixed; right:16px; top:86px; background:#0f172a; color:#fff; padding:10px 14px; border-radius:10px;
+      border:1px solid #111827; display:none; box-shadow: var(--elev-3); z-index:100
+    }
+    .toast.show{ display:block; animation:fade .18s }
+    @keyframes fade{ from{opacity:.6; transform:translateY(-6px)} to{opacity:1; transform:none} }
+
+    /* ===================== SERVICE CONTROL — GEO MAP ===================== */
+    #apMap { width: 100%; height: 540px; border-radius: 12px; border:1px solid var(--border); box-shadow: var(--elev-1); }
+    .map-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px }
+    .legend{ display:flex; align-items:center; gap:10px; flex-wrap:wrap }
+    .legend .swatch{ width:14px; height:14px; border-radius:3px; border:1px solid var(--border-strong) }
+    .swatch-active{ background:var(--badge-success-bg); border-color:var(--badge-success-b) }
+    .swatch-paused{ background:var(--badge-danger-bg); border-color:var(--badge-danger-b) }
+
+    /* ===================== RESPONSIVE ===================== */
+    @media (max-width: 1180px){
+      .stats-grid{ grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .grid-3{ grid-template-columns: repeat(2,minmax(0,1fr)); }
+      html[data-collapsed="false"] .sidebar{ width:230px }
+    }
+    @media (max-width: 720px){
+      .stats-grid{ grid-template-columns: 1fr; }
+      .grid-2, .grid-3{ grid-template-columns: 1fr; }
+      .app{ grid-template-columns: 86px 1fr }
+      html[data-collapsed="false"]{ --force-collapsed: true }
+      html .sidebar{ width:86px }
+      .brand p{ display:none }
+      #apMap { height: 420px; }
+    }
+
+    /* Accessibility ring */
+    :focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="title" style="font:800 14px var(--font-head); display:flex; align-items:center; gap:8px;">
+          <span class="material-symbols-rounded" style="color:var(--primary)">dashboard_customize</span>
+          <span>Admin Menu</span>
+        </div>
+        <button class="collapse-btn" id="collapseBtn" title="Collapse">
+          <span class="material-symbols-rounded">chevron_left</span>
+        </button>
+      </div>
+      <nav class="nav" id="nav">
+        <button class="active" data-tab="master"><span class="material-symbols-rounded">settings</span><span class="label" data-i18n="tabMaster">Master Configuration</span></button>
+        <button data-tab="users"><span class="material-symbols-rounded">group</span><span class="label" data-i18n="tabUsers">User Management</span></button>
+        <button data-tab="content"><span class="material-symbols-rounded">campaign</span><span class="label" data-i18n="tabContent">Content Management</span></button>
+        <button data-tab="service"><span class="material-symbols-rounded">bolt</span><span class="label" data-i18n="tabService">Service Control</span></button>
+        <button data-tab="audit"><span class="material-symbols-rounded">analytics</span><span class="label" data-i18n="tabAudit">Audit Logs</span></button>
+      </nav>
+    </aside>
+
+    <!-- App Bar -->
+    <header class="appbar">
+      <div class="brand">
+        <div class="logo"><span class="material-symbols-rounded" style="font-variation-settings:'FILL' 1;">account_balance</span></div>
+        <div>
+          <h1 data-i18n="deptTitle">Civil Supplies Department</h1>
+          <p data-i18n="adminPanel">Administrative Panel — Andhra Pradesh</p>
+        </div>
+      </div>
+      <div class="appbar-actions">
+        <div class="lang-switch" role="tablist" aria-label="Language">
+          <button class="active" data-lang="en">English</button>
+          <button data-lang="te">తెలుగు</button>
+        </div>
+        <select id="themeSelect" class="select" title="Theme">
+          <option value="light">Theme: White & Blue (Default)</option>
+          <option value="teal">Theme: Teal Neon (Dark)</option>
+          <option value="purple">Theme: Purple Neon (Dark)</option>
+        </select>
+        <div class="chip">
+          <span class="material-symbols-rounded" style="vertical-align:-4px;">shield_person</span>
+          <span data-i18n="adminLabel">Admin:</span>&nbsp;<strong id="adminName">Rajesh Kumar</strong>
+        </div>
+        <button class="btn btn-primary" id="logoutBtn"><span class="material-symbols-rounded">logout</span> <span data-i18n="logout">&nbsp;Logout</span></button>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main>
+      <!-- Stats -->
+      <section class="stats-grid" aria-label="Key Stats">
+        <div class="stat">
+          <div class="label" data-i18n="totalFps">Total FPS Shops</div>
+          <div class="value" id="totalFPS">2,847</div>
+        </div>
+        <div class="stat">
+          <div class="label" data-i18n="activeUsers">Active Users</div>
+          <div class="value" id="activeUsers">1,234</div>
+        </div>
+        <div class="stat">
+          <div class="label" data-i18n="serviceRegions">Service Regions</div>
+          <div class="value" id="activeRegions">13/13</div>
+        </div>
+        <div class="stat">
+          <div class="label" data-i18n="pendingActions">Pending Actions</div>
+          <div class="value" id="pendingActions">8</div>
+        </div>
+      </section>
+
+      <!-- MASTER -->
+      <section class="card tab" id="tab-master">
+        <div class="card-header">
+          <div class="card-title"><span class="material-symbols-rounded" style="color:var(--primary)">map</span><span data-i18n="zonesTitle">FPS Operational Zones</span></div>
+          <button class="btn" style="background:var(--primary); color:#fff; border-color:transparent" data-open="modal-zone" data-i18n="addZone">+ Add Zone</button>
+        </div>
+        <div class="card-body">
+          <div class="grid grid-3">
+            <div class="field">
+              <label data-i18n="selectDistrict">Select District</label>
+              <select class="select-inp" id="districtSelect">
+                <option value="">--</option>
+                <option value="guntur">Guntur</option>
+                <option value="krishna">Krishna</option>
+                <option value="visakhapatnam">Visakhapatnam</option>
+                <option value="vijayawada">Vijayawada</option>
+              </select>
+            </div>
+            <div class="field">
+              <label data-i18n="selectMandal">Select Mandal</label>
+              <select class="select-inp" id="mandalSelect">
+                <option value="">--</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="thDistrict">District</th>
+                  <th data-i18n="thMandal">Mandal</th>
+                  <th data-i18n="thFps">FPS Count</th>
+                  <th data-i18n="thStatus">Status</th>
+                  <th data-i18n="thAction">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="zoneTable">
+                <tr>
+                  <td>Guntur</td>
+                  <td>Tenali</td>
+                  <td>147</td>
+                  <td><span class="badge b-success" data-i18n="active">Active</span></td>
+                  <td>
+                    <button class="btn-icon" title="Edit" onclick="toast('Editing zone 1')"><span class="material-symbols-rounded">edit</span></button>
+                    <button class="btn-icon" title="Delete" onclick="removeRow(this)"><span class="material-symbols-rounded">delete</span></button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Krishna</td>
+                  <td>Machilipatnam</td>
+                  <td>203</td>
+                  <td><span class="badge b-success" data-i18n="active">Active</span></td>
+                  <td>
+                    <button class="btn-icon" title="Edit" onclick="toast('Editing zone 2')"><span class="material-symbols-rounded">edit</span></button>
+                    <button class="btn-icon" title="Delete" onclick="removeRow(this)"><span class="material-symbols-rounded">delete</span></button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Products -->
+        <div class="card-header">
+          <div class="card-title"><span class="material-symbols-rounded" style="color:var(--primary)">inventory_2</span><span data-i18n="prodTitle">Product Categories & Unit Types</span></div>
+          <button class="btn" style="background:var(--primary); color:#fff; border-color:transparent" data-open="modal-product" data-i18n="addProduct">+ Add Product</button>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="thCategory">Category Name</th>
+                  <th data-i18n="thUnit">Unit Type</th>
+                  <th data-i18n="thTax">Tax Code (%)</th>
+                  <th data-i18n="thPds">PDS Eligible</th>
+                  <th data-i18n="thStatus">Status</th>
+                  <th data-i18n="thAction">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="productTable">
+                <tr>
+                  <td>Rice (బియ్యం)</td>
+                  <td>Kg</td>
+                  <td>0%</td>
+                  <td><span class="badge b-success" data-i18n="yes">Yes</span></td>
+                  <td><span class="badge b-success" data-i18n="active">Active</span></td>
+                  <td>
+                    <button class="btn-icon" onclick="toast('Edit product 1')"><span class="material-symbols-rounded">edit</span></button>
+                    <button class="btn-icon" onclick="removeRow(this)"><span class="material-symbols-rounded">delete</span></button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Sugar (చక్కెర)</td>
+                  <td>Kg</td>
+                  <td>5%</td>
+                  <td><span class="badge b-success" data-i18n="yes">Yes</span></td>
+                  <td><span class="badge b-success" data-i18n="active">Active</span></td>
+                  <td>
+                    <button class="btn-icon" onclick="toast('Edit product 2')"><span class="material-symbols-rounded">edit</span></button>
+                    <button class="btn-icon" onclick="removeRow(this)"><span class="material-symbols-rounded">delete</span></button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Feature toggles -->
+        <div class="card-header">
+          <div class="card-title"><span class="material-symbols-rounded" style="color:var(--primary)">tune</span><span data-i18n="featureControls">Feature Module Controls</span></div>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="thModule">Module Name</th>
+                  <th data-i18n="thDesc">Description</th>
+                  <th data-i18n="thStatus">Status</th>
+                  <th data-i18n="thToggle">Toggle</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Dark Store Mode</strong></td>
+                  <td data-i18n="m1desc">Warehouse fulfillment system</td>
+                  <td><span id="status-darkStore" class="badge b-success" data-i18n="enabled">Enabled</span></td>
+                  <td><label class="switch"><input type="checkbox" checked data-toggle="darkStore"><span class="slider"></span></label></td>
+                </tr>
+                <tr>
+                  <td><strong>Digital Wallet</strong></td>
+                  <td data-i18n="m2desc">Integrated payment wallet</td>
+                  <td><span id="status-wallet" class="badge b-danger" data-i18n="disabled">Disabled</span></td>
+                  <td><label class="switch"><input type="checkbox" data-toggle="wallet"><span class="slider"></span></label></td>
+                </tr>
+                <tr>
+                  <td><strong>AI Chatbot</strong></td>
+                  <td data-i18n="m3desc">Automated customer support</td>
+                  <td><span id="status-chatbot" class="badge b-success" data-i18n="enabled">Enabled</span></td>
+                  <td><label class="switch"><input type="checkbox" checked data-toggle="chatbot"><span class="slider"></span></label></td>
+                </tr>
+                <tr>
+                  <td><strong>Mini Mart Ecosystem</strong></td>
+                  <td data-i18n="m4desc">Third-party seller integration</td>
+                  <td><span id="status-miniMart" class="badge b-success" data-i18n="enabled">Enabled</span></td>
+                  <td><label class="switch"><input type="checkbox" checked data-toggle="miniMart"><span class="slider"></span></label></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- USERS -->
+      <section class="card tab" id="tab-users" hidden>
+        <div class="card-header">
+          <div class="card-title"><span class="material-symbols-rounded" style="color:var(--primary)">supervisor_account</span><span data-i18n="userRoleMgmt">User & Role Management</span></div>
+          <button class="btn" style="background:var(--primary); color:#fff; border-color:transparent" data-open="modal-user" data-i18n="addUser">+ Add User</button>
+        </div>
+        <div class="card-body">
+          <div class="grid grid-3">
+            <div class="field"><label data-i18n="filterRole">Filter by Role</label>
+              <select class="select-inp" id="roleFilter">
+                <option value="all" data-i18n="allRoles">All Roles</option>
+                <option value="admin">Admin</option>
+                <option value="regional">Regional Officer</option>
+                <option value="helpdesk">Helpdesk Agent</option>
+                <option value="dealer">FPS Dealer</option>
+                <option value="partner">Mini Mart Partner</option>
+              </select>
+            </div>
+            <div class="field"><label data-i18n="searchUser">Search User</label><input class="input" id="userSearch" placeholder="Name, Email, Phone..."></div>
+          </div>
+
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="thName">Name</th>
+                  <th data-i18n="thRole">Role</th>
+                  <th data-i18n="thZone">Zone/Shop</th>
+                  <th data-i18n="thContact">Contact</th>
+                  <th data-i18n="thStatus">Status</th>
+                  <th data-i18n="thAction">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="userTable">
+                <tr data-role="regional">
+                  <td>Suresh Babu</td>
+                  <td><span class="badge b-info">Regional Officer</span></td>
+                  <td>Guntur District</td>
+                  <td>9876543210</td>
+                  <td><span class="badge b-success" data-i18n="active">Active</span></td>
+                  <td>
+                    <button class="btn-icon" onclick="toast('Edit user 1')"><span class="material-symbols-rounded">edit</span></button>
+                    <button class="btn-icon" onclick="removeRow(this)"><span class="material-symbols-rounded">delete</span></button>
+                  </td>
+                </tr>
+                <tr data-role="dealer">
+                  <td>Lakshmi Devi</td>
+                  <td><span class="badge b-warn">FPS Dealer</span></td>
+                  <td>Tenali Shop #45</td>
+                  <td>9876543211</td>
+                  <td><span class="badge b-success" data-i18n="active">Active</span></td>
+                  <td>
+                    <button class="btn-icon" onclick="toast('Edit user 2')"><span class="material-symbols-rounded">edit</span></button>
+                    <button class="btn-icon" onclick="removeRow(this)"><span class="material-symbols-rounded">delete</span></button>
+                  </td>
+                </tr>
+                <tr data-role="admin">
+                  <td>Priya Sharma</td>
+                  <td><span class="badge b-danger">Admin</span></td>
+                  <td>Central Admin</td>
+                  <td>9876543212</td>
+                  <td><span class="badge b-warn">Pending</span></td>
+                  <td>
+                    <button class="btn-icon" onclick="toast('Edit user 3')"><span class="material-symbols-rounded">edit</span></button>
+                    <button class="btn-icon" onclick="removeRow(this)"><span class="material-symbols-rounded">delete</span></button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- CONTENT -->
+      <section class="card tab" id="tab-content" hidden>
+        <div class="card-header">
+          <div class="card-title"><span class="material-symbols-rounded" style="color:var(--primary)">dynamic_feed</span><span data-i18n="contentTitle">Content & Announcements</span></div>
+          <button class="btn" style="background:var(--primary); color:#fff; border-color:transparent" data-open="modal-content" data-i18n="addContent">+ Add Content</button>
+        </div>
+        <div class="card-body">
+          <div class="grid grid-3">
+            <div class="field"><label data-i18n="filterType">Filter by Type</label>
+              <select class="select-inp" id="contentFilter">
+                <option value="all" data-i18n="allTypes">All Types</option>
+                <option value="banner" data-i18n="banner">Banner</option>
+                <option value="announcement" data-i18n="announcement">Announcement</option>
+                <option value="notification" data-i18n="notification">Notification</option>
+              </select>
+            </div>
+            <div class="field"><label data-i18n="searchContent">Search Content</label><input class="input" id="contentSearch" placeholder="Title or Keyword..."></div>
+          </div>
+
+          <div class="table-wrap" style="margin-top:10px">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="thTitle">Title</th>
+                  <th data-i18n="thType">Type</th>
+                  <th data-i18n="thStatus">Status</th>
+                  <th data-i18n="thCreated">Created</th>
+                  <th data-i18n="thAction">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="contentTable">
+                <tr data-type="banner">
+                  <td>PDS Scheme Update</td>
+                  <td><span class="badge b-info" data-i18n="banner">Banner</span></td>
+                  <td><span class="badge b-success" data-i18n="active">Active</span></td>
+                  <td>2025-11-01</td>
+                  <td>
+                    <button class="btn-icon" onclick="toast('Edit content 1')"><span class="material-symbols-rounded">edit</span></button>
+                    <button class="btn-icon" onclick="removeRow(this)"><span class="material-symbols-rounded">delete</span></button>
+                  </td>
+                </tr>
+                <tr data-type="announcement">
+                  <td>FPS Holiday Notice</td>
+                  <td><span class="badge b-warn" data-i18n="announcement">Announcement</span></td>
+                  <td><span class="badge b-success" data-i18n="active">Active</span></td>
+                  <td>2025-10-28</td>
+                  <td>
+                    <button class="btn-icon" onclick="toast('Edit content 2')"><span class="material-symbols-rounded">edit</span></button>
+                    <button class="btn-icon" onclick="removeRow(this)"><span class="material-symbols-rounded">delete</span></button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- SERVICE CONTROL — GEOGRAPHICAL MAP -->
+      <section class="card tab" id="tab-service" hidden>
+        <div class="card-header">
+          <div class="card-title">
+            <span class="material-symbols-rounded" style="color:var(--primary)">bolt</span>
+            <span data-i18n="serviceControl">Real-Time Service Control</span>
+          </div>
+          <div class="map-actions">
+            <button class="btn" id="selectAllBtn">Enable All</button>
+            <button class="btn" id="pauseAllBtn">Pause All</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="legend" style="margin-bottom:8px">
+            <span class="swatch swatch-active"></span> Active
+            <span class="swatch swatch-paused" style="margin-left:10px"></span> Paused
+          </div>
+          <div id="apMap" role="img" aria-label="Andhra Pradesh districts (click to toggle)"></div>
+        </div>
+      </section>
+
+      <!-- AUDIT LOGS -->
+      <section class="card tab" id="tab-audit" hidden>
+        <div class="card-header">
+          <div class="card-title">
+            <span class="material-symbols-rounded" style="color:var(--primary)">history</span>
+            <span data-i18n="auditLogs">Audit Logs & Activity Reports</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Role</th>
+                  <th>Action</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="auditTable">
+                <tr>
+                  <td>Rajesh Kumar</td>
+                  <td>Admin</td>
+                  <td>Edited master zone configuration</td>
+                  <td>2025-11-06 09:22 AM</td>
+                </tr>
+                <tr>
+                  <td>Suresh Babu</td>
+                  <td>Regional Officer</td>
+                  <td>Updated FPS dealer details</td>
+                  <td>2025-11-06 08:11 AM</td>
+                </tr>
+                <tr>
+                  <td>Priya Sharma</td>
+                  <td>Admin</td>
+                  <td>Enabled AI Chatbot Module</td>
+                  <td>2025-11-05 07:25 PM</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- MODALS -->
+  <div class="modal" id="modal-zone" role="dialog" aria-modal="true" aria-labelledby="zoneTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="card-title"><span class="material-symbols-rounded" style="color:var(--primary)">map</span><span id="zoneTitle">Add Zone</span></div>
+        <button class="close" data-close><span class="material-symbols-rounded">close</span></button>
+      </div>
+      <form id="zoneForm" class="modal-body">
+        <div class="grid grid-2">
+          <div class="field">
+            <label>District</label>
+            <select class="select-inp" name="district" required>
+              <option value="">--</option>
+              <option>Guntur</option>
+              <option>Krishna</option>
+              <option>Visakhapatnam</option>
+              <option>Vijayawada</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Mandal</label>
+            <input class="input" name="mandal" placeholder="e.g., Tenali" required />
+          </div>
+          <div class="field">
+            <label>FPS Count</label>
+            <input type="number" class="input" name="count" min="0" value="0" required />
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select class="select-inp" name="status">
+              <option>Active</option>
+              <option>Paused</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px; justify-content:flex-end">
+          <button type="button" class="btn" data-close>Cancel</button>
+          <button class="btn" style="background:var(--primary); color:#fff; border-color:transparent" type="submit">Add Zone</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-product" role="dialog" aria-modal="true" aria-labelledby="productTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="card-title"><span class="material-symbols-rounded" style="color:var(--primary)">inventory_2</span><span id="productTitle">Add Product</span></div>
+        <button class="close" data-close><span class="material-symbols-rounded">close</span></button>
+      </div>
+      <form id="productForm" class="modal-body">
+        <div class="grid grid-2">
+          <div class="field">
+            <label>Category Name</label>
+            <input class="input" name="name" placeholder="Rice (బియ్యం)" required />
+          </div>
+          <div class="field">
+            <label>Unit</label>
+            <select class="select-inp" name="unit">
+              <option>Kg</option>
+              <option>Litre</option>
+              <option>Pack</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tax Code (%)</label>
+            <input class="input" name="tax" type="number" min="0" max="28" value="0" />
+          </div>
+          <div class="field">
+            <label>PDS Eligible</label>
+            <select class="select-inp" name="pds">
+              <option>Yes</option>
+              <option>No</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select class="select-inp" name="status">
+              <option>Active</option>
+              <option>Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px; justify-content:flex-end">
+          <button type="button" class="btn" data-close>Cancel</button>
+          <button class="btn" style="background:var(--primary); color:#fff; border-color:transparent" type="submit">Add Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-user" role="dialog" aria-modal="true" aria-labelledby="userTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="card-title"><span class="material-symbols-rounded" style="color:var(--primary)">person_add</span><span id="userTitle">Add User</span></div>
+        <button class="close" data-close><span class="material-symbols-rounded">close</span></button>
+      </div>
+      <form id="userForm" class="modal-body">
+        <div class="grid grid-2">
+          <div class="field">
+            <label>Full Name</label>
+            <input class="input" name="name" placeholder="e.g., Anitha Rao" required />
+          </div>
+          <div class="field">
+            <label>Role</label>
+            <select class="select-inp" name="role">
+              <option value="admin">Admin</option>
+              <option value="regional">Regional Officer</option>
+              <option value="helpdesk">Helpdesk Agent</option>
+              <option value="dealer">FPS Dealer</option>
+              <option value="partner">Mini Mart Partner</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Zone/Shop</label>
+            <input class="input" name="zone" placeholder="e.g., Guntur District / Shop #12" />
+          </div>
+          <div class="field">
+            <label>Contact</label>
+            <input class="input" name="contact" placeholder="98765 43210" />
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select class="select-inp" name="status">
+              <option>Active</option>
+              <option>Pending</option>
+              <option>Suspended</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px; justify-content:flex-end">
+          <button type="button" class="btn" data-close>Cancel</button>
+          <button class="btn" style="background:var(--primary); color:#fff; border-color:transparent" type="submit">Add User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="modal-content" role="dialog" aria-modal="true" aria-labelledby="contentTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="card-title"><span class="material-symbols-rounded" style="color:var(--primary)">add_to_photos</span><span id="contentTitle">Add Content</span></div>
+        <button class="close" data-close><span class="material-symbols-rounded">close</span></button>
+      </div>
+      <form id="contentForm" class="modal-body">
+        <div class="grid grid-2">
+          <div class="field">
+            <label>Title</label>
+            <input class="input" name="title" placeholder="e.g., New Ration Delivery Timings" required />
+          </div>
+          <div class="field">
+            <label>Type</label>
+            <select class="select-inp" name="type">
+              <option value="banner">Banner</option>
+              <option value="announcement">Announcement</option>
+              <option value="notification">Notification</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Status</label>
+            <select class="select-inp" name="status">
+              <option>Active</option>
+              <option>Inactive</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:1/-1">
+            <label>Body</label>
+            <textarea class="textarea" name="body" rows="4" placeholder="Short description..."></textarea>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:12px; justify-content:flex-end">
+          <button type="button" class="btn" data-close>Cancel</button>
+          <button class="btn" style="background:var(--primary); color:#fff; border-color:transparent" type="submit">Add Content</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============== JS: Interactions ============== -->
+  <script>
+    // --- Toast ---
+    function toast(msg){
+      const t=document.getElementById('toast');
+      t.textContent=msg; t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'),2000);
+    }
+    function removeRow(el){
+      el.closest('tr').remove(); toast('Row removed');
+    }
+
+    // --- Tabs switching ---
+    document.querySelectorAll('.nav button').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab=btn.dataset.tab;
+        document.querySelectorAll('.tab').forEach(t=>t.hidden=true);
+        document.getElementById('tab-'+tab).hidden=false;
+        // If switching to Service Control, invalidate Leaflet map size
+        if(tab==='service' && window.apLeaflet){
+          setTimeout(()=>{ window.apLeaflet.invalidateSize(); }, 50);
+        }
+      });
+    });
+
+    // --- Sidebar collapse ---
+    document.getElementById('collapseBtn').onclick=()=>{
+      const html=document.documentElement;
+      const val=html.getAttribute('data-collapsed')==='true'?'false':'true';
+      html.setAttribute('data-collapsed',val);
+      if(window.apLeaflet){
+        setTimeout(()=>{ window.apLeaflet.invalidateSize(); }, 200);
+      }
+    };
+
+    // --- Theme switch ---
+    const themeSelect = document.getElementById('themeSelect');
+    themeSelect.onchange = (e)=>{
+      document.documentElement.setAttribute('data-theme', e.target.value);
+      localStorage.setItem('theme', e.target.value);
+      // adjust map tile brightness on dark themes (optional)
+    };
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    themeSelect.value = savedTheme;
+
+    // --- Language (i18n) ---
+    const i18n = {
+      en: {
+        tabMaster:"Master Configuration", tabUsers:"User Management", tabContent:"Content Management", tabService:"Service Control", tabAudit:"Audit Logs",
+        deptTitle:"Civil Supplies Department", adminPanel:"Administrative Panel — Andhra Pradesh", adminLabel:"Admin:", logout:"Logout",
+        totalFps:"Total FPS Shops", activeUsers:"Active Users", serviceRegions:"Service Regions", pendingActions:"Pending Actions",
+        zonesTitle:"FPS Operational Zones", addZone:"+ Add Zone", selectDistrict:"Select District", selectMandal:"Select Mandal",
+        thDistrict:"District", thMandal:"Mandal", thFps:"FPS Count", thStatus:"Status", thAction:"Actions",
+        prodTitle:"Product Categories & Unit Types", addProduct:"+ Add Product", thCategory:"Category Name", thUnit:"Unit Type", thTax:"Tax Code (%)", thPds:"PDS Eligible",
+        yes:"Yes", active:"Active", featureControls:"Feature Module Controls", thModule:"Module Name", thDesc:"Description", thToggle:"Toggle",
+        enabled:"Enabled", disabled:"Disabled",
+        userRoleMgmt:"User & Role Management", addUser:"+ Add User", filterRole:"Filter by Role", allRoles:"All Roles", searchUser:"Search User", thName:"Name", thRole:"Role", thZone:"Zone/Shop", thContact:"Contact",
+        contentTitle:"Content & Announcements", addContent:"+ Add Content", filterType:"Filter by Type", allTypes:"All Types", banner:"Banner", announcement:"Announcement", notification:"Notification", thTitle:"Title", thType:"Type", thCreated:"Created",
+        serviceControl:"Real-Time Service Control", auditLogs:"Audit Logs & Activity Reports"
+      },
+      te: {
+        tabMaster:"మాస్టర్ సెట్టింగ్స్", tabUsers:"యూజర్ మేనేజ్‌మెంట్", tabContent:"కంటెంట్ నిర్వహణ", tabService:"సర్వీస్ కంట్రోల్", tabAudit:"ఆడిట్ లాగ్స్",
+        deptTitle:"సివిల్ సప్లైస్ డిపార్ట్‌మెంట్", adminPanel:"అడ్మినిస్ట్రేటివ్ ప్యానెల్ — ఆంధ్రప్రదేశ్", adminLabel:"అడ్మిన్:", logout:"లాగ్‌అవుట్",
+        totalFps:"మొత్తం FPS షాప్స్", activeUsers:"సక్రియ యూజర్లు", serviceRegions:"సర్వీస్ రీజియన్స్", pendingActions:"పెండింగ్ యాక్షన్స్",
+        zonesTitle:"FPS ఆపరేషనల్ జోన్స్", addZone:"+ జోన్ యాడ్ చేయి", selectDistrict:"జిల్లా ఎంచుకోండి", selectMandal:"మండలం ఎంచుకోండి",
+        thDistrict:"జిల్లా", thMandal:"మండలం", thFps:"FPS సంఖ్య", thStatus:"స్థితి", thAction:"చర్యలు",
+        prodTitle:"ప్రోడక్ట్ కేటగిరీలు & యూనిట్స్", addProduct:"+ ప్రోడక్ట్ యాడ్ చేయి", thCategory:"కేటగిరీ పేరు", thUnit:"యూనిట్", thTax:"ట్యాక్స్ కోడ్ (%)", thPds:"PDS అర్హత",
+        yes:"అవును", active:"యాక్టివ్", featureControls:"ఫీచర్ మాడ్యూల్ కంట్రోల్స్", thModule:"మాడ్యూల్ పేరు", thDesc:"వివరణ", thToggle:"టాగిల్",
+        enabled:"ఎనేబుల్", disabled:"డిసేబుల్",
+        userRoleMgmt:"యూజర్ & రోల్ మేనేజ్‌మెంట్", addUser:"+ యూజర్ యాడ్ చేయి", filterRole:"రోల్ ప్రకారం ఫిల్టర్", allRoles:"అన్నీ రోల్స్", searchUser:"యూజర్ సెర్చ్", thName:"పేరు", thRole:"రోల్", thZone:"జోన్/షాప్", thContact:"కాంటాక్ట్",
+        contentTitle:"కంటెంట్ & ప్రకటనలు", addContent:"+ కంటెంట్ యాడ్ చేయి", filterType:"టైప్ ప్రకారం ఫిల్టర్", allTypes:"అన్ని టైపులు", banner:"బ్యానర్", announcement:"ప్రకటన", notification:"నోటిఫికేషన్", thTitle:"టైటిల్", thType:"టైప్", thCreated:"క్రియేట్ చేసిన తేదీ",
+        serviceControl:"రియల్-టైమ్ సర్వీస్ కంట్రోల్", auditLogs:"ఆడిట్ లాగ్స్ & ఆక్టివిటీ రిపోర్ట్స్"
+      }
+    };
+    const langButtons = document.querySelectorAll('.lang-switch button');
+    function applyLang(lang){
+      document.querySelectorAll('[data-i18n]').forEach(el=>{
+        const key = el.getAttribute('data-i18n');
+        if(i18n[lang] && i18n[lang][key]) el.textContent = i18n[lang][key];
+      });
+      localStorage.setItem('lang', lang);
+    }
+    langButtons.forEach(btn=>btn.addEventListener('click',()=>{
+      langButtons.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      applyLang(btn.dataset.lang);
+    }));
+    const savedLang = localStorage.getItem('lang')||'en';
+    applyLang(savedLang);
+    langButtons.forEach(b=>{ if(b.dataset.lang===savedLang) b.classList.add('active'); else b.classList.remove('active'); });
+
+    // --- District -> Mandal dynamic options ---
+    const districtMandalMap = {
+      guntur:["Tenali","Guntur Urban","Mangalagiri"],
+      krishna:["Machilipatnam","Gudivada","Nuzvid"],
+      visakhapatnam:["Bheemunipatnam","Anakapalle","Pendurthi"],
+      vijayawada:["Vijayawada Urban","Kankipadu","Penamaluru"]
+    };
+    const districtSelect = document.getElementById('districtSelect');
+    const mandalSelect = document.getElementById('mandalSelect');
+    districtSelect.addEventListener('change',()=>{
+      const d = districtSelect.value;
+      mandalSelect.innerHTML = '<option value="">--</option>' + (districtMandalMap[d]||[]).map(m=>`<option>${m}</option>`).join('');
+    });
+
+    // --- Feature toggle badges ---
+    document.querySelectorAll('[data-toggle]').forEach(inp=>{
+      inp.addEventListener('change',()=>{
+        const key = inp.getAttribute('data-toggle');
+        const badge = document.getElementById('status-'+key);
+        const enabled = inp.checked;
+        const lang = localStorage.getItem('lang') || 'en';
+        badge.textContent = enabled ? (i18n[lang].enabled||'Enabled') : (i18n[lang].disabled||'Disabled');
+        badge.className = 'badge ' + (enabled ? 'b-success' : 'b-danger');
+        toast(`${key} ${enabled?'enabled':'disabled'}`);
+      });
+    });
+
+    // --- SERVICE CONTROL: STATE (13 districts) ---
+    const defaultMapState = {
+      "Srikakulam": true,
+      "Vizianagaram": true,
+      "Visakhapatnam": true,
+      "East Godavari": true,
+      "West Godavari": true,
+      "Krishna": true,
+      "Guntur": true,
+      "Prakasam": false,   // paused by default
+      "Nellore": true,
+      "Chittoor": true,
+      "Kadapa": true,
+      "Kurnool": true,
+      "Anantapur": false   // paused by default
+    };
+    const savedMap = JSON.parse(localStorage.getItem('ap_map_state')||'null');
+    const apMapState = savedMap || defaultMapState;
+
+    // --- SERVICE CONTROL: GEO MAP (Leaflet) ---
+    // District marker coordinates (approximate district HQs)
+    const districtCoords = {
+      "Srikakulam":     [18.296, 83.897],
+      "Vizianagaram":   [18.106, 83.395],
+      "Visakhapatnam":  [17.686, 83.218],
+      "East Godavari":  [16.989, 82.247], // Kakinada
+      "West Godavari":  [16.705, 81.103], // Eluru
+      "Krishna":        [16.187, 81.138], // Machilipatnam
+      "Guntur":         [16.306, 80.436],
+      "Prakasam":       [15.505, 80.049], // Ongole
+      "Nellore":        [14.442, 79.986],
+      "Chittoor":       [13.217, 79.100],
+      "Kadapa":         [14.467, 78.824],
+      "Kurnool":        [15.828, 78.038],
+      "Anantapur":      [14.681, 77.600]
+    };
+
+    // Create map
+    const map = L.map('apMap', { zoomControl: true, attributionControl: true });
+    window.apLeaflet = map; // expose for invalidateSize
+
+    // Base tiles
+    const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    // Fit to Andhra Pradesh rough bounds
+    const apBounds = L.latLngBounds([12.5, 76.5], [19.5, 85.0]);
+    map.fitBounds(apBounds);
+
+    // Marker store
+    const markers = {};
+
+    function markerStyle(active){
+      return {
+        radius: 8,
+        color: active ? '#16a34a' : '#ef4444',       // stroke
+        weight: 2,
+        fillColor: active ? '#86efac' : '#fecaca',  // fill
+        fillOpacity: 0.9
+      };
+    }
+
+    function drawMarkers(){
+      // Remove if existing
+      Object.values(markers).forEach(m=>map.removeLayer(m));
+      Object.keys(markers).forEach(k=>delete markers[k]);
+
+      Object.entries(districtCoords).forEach(([name, latlng])=>{
+        const active = !!apMapState[name];
+        const m = L.circleMarker(latlng, markerStyle(active))
+          .addTo(map)
+          .bindTooltip(name, { permanent: true, direction: 'top', offset: [0, -10], opacity: 0.9 });
+
+        m.on('click', ()=>{
+          apMapState[name] = !apMapState[name];
+          m.setStyle(markerStyle(apMapState[name]));
+          toast(`${name}: ${apMapState[name] ? 'Active' : 'Paused'}`);
+          updateServiceRegionsStat();
+          localStorage.setItem('ap_map_state', JSON.stringify(apMapState));
+        });
+        markers[name] = m;
+      });
+
+      updateServiceRegionsStat();
+      localStorage.setItem('ap_map_state', JSON.stringify(apMapState));
+    }
+
+    function refreshMarkers(){
+      Object.entries(markers).forEach(([name, m])=>{
+        m.setStyle(markerStyle(!!apMapState[name]));
+      });
+      updateServiceRegionsStat();
+      localStorage.setItem('ap_map_state', JSON.stringify(apMapState));
+    }
+
+    function updateServiceRegionsStat(){
+      const total = Object.keys(apMapState).length;
+      const active = Object.values(apMapState).filter(Boolean).length;
+      const el = document.getElementById('activeRegions');
+      if(el) el.textContent = `${active}/${total}`;
+    }
+
+    // Buttons
+    const selectAllBtn = document.getElementById('selectAllBtn');
+    const pauseAllBtn  = document.getElementById('pauseAllBtn');
+    if(selectAllBtn) selectAllBtn.addEventListener('click', ()=>{
+      Object.keys(apMapState).forEach(k=>apMapState[k]=true);
+      refreshMarkers();
+      toast('All districts set to Active');
+    });
+    if(pauseAllBtn) pauseAllBtn.addEventListener('click', ()=>{
+      Object.keys(apMapState).forEach(k=>apMapState[k]=false);
+      refreshMarkers();
+      toast('All districts set to Paused');
+    });
+
+    // Draw initial markers
+    drawMarkers();
+
+    // --- Filters & Search (Users) ---
+    const roleFilter = document.getElementById('roleFilter');
+    const userSearch = document.getElementById('userSearch');
+    function filterUsers(){
+      const role = roleFilter.value;
+      const q = userSearch.value.toLowerCase();
+      document.querySelectorAll('#userTable tr').forEach(tr=>{
+        const okRole = role==='all' || tr.getAttribute('data-role')===role;
+        const text = tr.textContent.toLowerCase();
+        tr.style.display = (okRole && text.includes(q)) ? '' : 'none';
+      });
+    }
+    if(roleFilter) roleFilter.addEventListener('change', filterUsers);
+    if(userSearch) userSearch.addEventListener('input', filterUsers);
+
+    // --- Filters & Search (Content) ---
+    const contentFilter = document.getElementById('contentFilter');
+    const contentSearch = document.getElementById('contentSearch');
+    function filterContent(){
+      const type = contentFilter.value;
+      const q = contentSearch.value.toLowerCase();
+      document.querySelectorAll('#contentTable tr').forEach(tr=>{
+        const okType = type==='all' || tr.getAttribute('data-type')===type;
+        const text = tr.textContent.toLowerCase();
+        tr.style.display = (okType && text.includes(q)) ? '' : 'none';
+      });
+    }
+    if(contentFilter) contentFilter.addEventListener('change', filterContent);
+    if(contentSearch) contentSearch.addEventListener('input', filterContent);
+
+    // --- Modal open/close ---
+    function openModal(id){ document.getElementById(id).classList.add('show'); }
+    function closeModal(el){ el.closest('.modal').classList.remove('show'); }
+    document.querySelectorAll('[data-open]').forEach(btn=>btn.addEventListener('click',()=>openModal(btn.getAttribute('data-open'))));
+    document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>closeModal(btn)));
+    document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('show'); }));
+
+    // --- Mock API layer (simulated) ---
+    const api = {
+      zones: { create: (payload)=> new Promise(res=> setTimeout(()=>res({ ok:true, id:Date.now(), ...payload }), 300)) },
+      products: { create: (payload)=> new Promise(res=> setTimeout(()=>res({ ok:true, id:Date.now(), ...payload }), 300)) },
+      users: { create: (payload)=> new Promise(res=> setTimeout(()=>res({ ok:true, id:Date.now(), ...payload }), 300)) },
+      contents: { create: (payload)=> new Promise(res=> setTimeout(()=>res({ ok:true, id:Date.now(), ...payload }), 300)) }
+    };
+
+    // --- Add Zone submit ---
+    document.getElementById('zoneForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const data = Object.fromEntries(fd.entries());
+      data.count = Number(data.count||0);
+      const res = await api.zones.create(data);
+      if(res.ok){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${res.district}</td>
+          <td>${res.mandal}</td>
+          <td>${res.count}</td>
+          <td><span class="badge ${res.status==='Active'?'b-success':'b-danger'}">${res.status}</span></td>
+          <td>
+            <button class="btn-icon" onclick="toast('Edit zone')"><span class="material-symbols-rounded">edit</span></button>
+            <button class="btn-icon" onclick="removeRow(this)"><span class="material-symbols-rounded">delete</span></button>
+          </td>`;
+        document.getElementById('zoneTable').prepend(tr);
+        e.target.reset();
+        document.getElementById('modal-zone').classList.remove('show');
+        toast('Zone added');
+      }
+    });
+
+    // --- Add Product submit ---
+    document.getElementById('productForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const data = Object.fromEntries(fd.entries());
+      const res = await api.products.create(data);
+      if(res.ok){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${res.name}</td>
+          <td>${res.unit}</td>
+          <td>${res.tax}%</td>
+          <td><span class="badge ${res.pds==='Yes'?'b-success':'b-danger'}">${res.pds}</span></td>
+          <td><span class="badge ${res.status==='Active'?'b-success':'b-danger'}">${res.status}</span></td>
+          <td>
+            <button class="btn-icon" onclick="toast('Edit product')"><span class="material-symbols-rounded">edit</span></button>
+            <button class="btn-icon" onclick="removeRow(this)"><span class="material-symbols-rounded">delete</span></button>
+          </td>`;
+        document.getElementById('productTable').prepend(tr);
+        e.target.reset();
+        document.getElementById('modal-product').classList.remove('show');
+        toast('Product added');
+      }
+    });
+
+    // --- Add User submit ---
+    document.getElementById('userForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const data = Object.fromEntries(fd.entries());
+      const res = await api.users.create(data);
+      if(res.ok){
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-role', res.role);
+        const roleLabel = {
+          admin:'<span class="badge b-danger">Admin</span>',
+          regional:'<span class="badge b-info">Regional Officer</span>',
+          helpdesk:'<span class="badge b-info">Helpdesk Agent</span>',
+          dealer:'<span class="badge b-warn">FPS Dealer</span>',
+          partner:'<span class="badge b-info">Mini Mart Partner</span>'
+        }[res.role] || '<span class="badge b-info">User</span>';
+        tr.innerHTML = `
+          <td>${res.name}</td>
+          <td>${roleLabel}</td>
+          <td>${res.zone||''}</td>
+          <td>${res.contact||''}</td>
+          <td><span class="badge ${res.status==='Active'?'b-success':(res.status==='Pending'?'b-warn':'b-danger')}">${res.status}</span></td>
+          <td>
+            <button class="btn-icon" onclick="toast('Edit user')"><span class="material-symbols-rounded">edit</span></button>
+            <button class="btn-icon" onclick="removeRow(this)"><span class="material-symbols-rounded">delete</span></button>
+          </td>`;
+        document.getElementById('userTable').prepend(tr);
+        e.target.reset();
+        document.getElementById('modal-user').classList.remove('show');
+        toast('User added');
+        (function(){
+          const role = document.getElementById('roleFilter').value;
+          const q = document.getElementById('userSearch').value.toLowerCase();
+          document.querySelectorAll('#userTable tr').forEach(tr=>{
+            const okRole = role==='all' || tr.getAttribute('data-role')===role;
+            const text = tr.textContent.toLowerCase();
+            tr.style.display = (okRole && text.includes(q)) ? '' : 'none';
+          });
+        })();
+      }
+    });
+
+    // --- Add Content submit ---
+    document.getElementById('contentForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const data = Object.fromEntries(fd.entries());
+      data.created = new Date().toISOString().slice(0,10);
+      const res = await api.contents.create(data);
+      if(res.ok){
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-type', res.type);
+        const typeBadge = res.type==='banner'? 'b-info' : (res.type==='announcement'? 'b-warn' : 'b-info');
+        tr.innerHTML = `
+          <td>${res.title}</td>
+          <td><span class="badge ${typeBadge}">${res.type.charAt(0).toUpperCase() + res.type.slice(1)}</span></td>
+          <td><span class="badge ${res.status==='Active'?'b-success':'b-danger'}">${res.status}</span></td>
+          <td>${res.created}</td>
+          <td>
+            <button class="btn-icon" onclick="toast('Edit content')"><span class="material-symbols-rounded">edit</span></button>
+            <button class="btn-icon" onclick="removeRow(this)"><span class="material-symbols-rounded">delete</span></button>
+          </td>`;
+        document.getElementById('contentTable').prepend(tr);
+        e.target.reset();
+        document.getElementById('modal-content').classList.remove('show');
+        toast('Content added');
+        // re-apply filters
+        const typeSel = document.getElementById('contentFilter');
+        const q = (document.getElementById('contentSearch')||{value:''}).value.toLowerCase();
+        document.querySelectorAll('#contentTable tr').forEach(tr=>{
+          const okType = (typeSel.value==='all' || tr.getAttribute('data-type')===typeSel.value);
+          const text = tr.textContent.toLowerCase();
+          tr.style.display = (okType && text.includes(q)) ? '' : 'none';
+        });
+      }
+    });
+  </script>
+</body>
+</html>
